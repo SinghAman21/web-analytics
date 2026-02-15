@@ -46,7 +46,7 @@ export default function OverviewTab() {
       
       <div className="grid lg:grid-cols-2 gap-12">
         <LiveUsersTable />
-        <FunnelChart />
+        {/* <FunnelChart /> */}
       </div>
     </div>
   );

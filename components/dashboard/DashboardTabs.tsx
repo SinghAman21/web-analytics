@@ -11,7 +11,7 @@ import ReportsTab from './tabs/ReportsTab';
 const tabs = [
   { id: 'overview', label: 'Overview' },
   { id: 'traffic', label: 'Traffic' },
-  { id: 'funnels', label: 'Funnels' },
+  // { id: 'funnels', label: 'Funnels' },
   { id: 'reports', label: 'Reports' },
 ];
 

@@ -135,7 +135,7 @@ export default function ReportsTab() {
       </section>
 
       {/* Saved Reports */}
-      <section>
+      {/* <section>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -168,10 +168,10 @@ export default function ReportsTab() {
             </motion.div>
           ))}
         </div>
-      </section>
+      </section> */}
 
       {/* Scheduled Reports */}
-      <section>
+      {/* <section>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -233,7 +233,7 @@ export default function ReportsTab() {
             + Create new scheduled report
           </button>
         </motion.div>
-      </section>
+      </section> */}
     </div>
   );
 }
