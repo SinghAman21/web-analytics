@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { ModeToggle } from '../toggle';
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
@@ -47,6 +48,7 @@ export default function Header() {
           >
             Start Free →
           </Link>
+          <ModeToggle />
         </div>
       </div>
     </motion.header>
