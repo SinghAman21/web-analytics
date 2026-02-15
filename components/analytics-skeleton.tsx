@@ -7,6 +7,7 @@ import { TrendingUp, Lock, Globe, Monitor, Smartphone, Tablet } from 'lucide-rea
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AppFooter from '@/components/shared/AppFooter';
+import { ModeToggle } from './toggle';
 
 const overviewStats = {
   today: 89,
@@ -93,13 +94,16 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center gap-6">
-          <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">Pulse</Link>
-          <span className="w-px h-6 bg-border" />
-          <Link href="/dashboard" className="text-sm font-mono text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
-          <span className="text-muted-foreground">/</span>
-          <span className="text-sm font-mono">{siteId || 'mysite.com'}</span>
+      <header className="border-b border-border flex shrink-0">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center justify-between w-full gap-6">
+          <div className="flex items-center gap-6">
+        <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">Pulse</Link>
+        <span className="w-px h-6 bg-border" />
+        <Link href="/dashboard" className="text-sm font-mono text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
+        <span className="text-muted-foreground">/</span>
+        <span className="text-sm font-mono">{siteId || 'mysite.com'}</span>
+          </div>
+          <ModeToggle />
         </div>
       </header>
 
@@ -134,7 +138,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
 
       {/* Quick Stats — Signed-In: Total + Live active, Unique + Daily trend, Bounce + Session duration */}
       <section className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid grid-cols-2 md:grid-cols-5 divide-x divide-border">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 grid grid-cols-2 md:grid-cols-5 divide-x divide-border py-6">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-6 px-4">
             <p className="label mb-2">Pageviews</p>
             <p className="text-3xl font-mono font-light tabular-nums">{totalPageviews.toLocaleString()}</p>
@@ -168,7 +172,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
         </div>
       </section>
 
-      <main className="max-w-7xl mx-auto px-6 lg:px-12 py-12">
+      <main className="max-w-7xl mx-auto px-6 lg:px-12 py-12 w-full">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="h-auto p-0 bg-transparent rounded-none gap-0 border-b border-border mb-12 flex flex-wrap justify-start">
             {tabList.map((tab) => (

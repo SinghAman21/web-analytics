@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { ModeToggle } from './toggle';
 
 
 const countries = [
@@ -20,14 +21,17 @@ export default function GeoDashboard({ siteId }: { siteId: string }) {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center gap-6">
-          <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">Pulse</Link>
-          <span className="w-px h-6 bg-border" />
-          <Link href="/dashboard" className="text-sm font-mono text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
-          <span className="text-muted-foreground">/</span>
-          <Link href={`/dashboard/${siteId}`} className="text-sm font-mono text-muted-foreground hover:text-foreground transition-colors">{siteId}</Link>
-          <span className="text-muted-foreground">/</span>
-          <span className="text-sm font-mono">Geo</span>
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+        <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">Pulse</Link>
+        <span className="w-px h-6 bg-border" />
+        <Link href="/dashboard" className="text-sm font-mono text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
+        <span className="text-muted-foreground">/</span>
+        <Link href={`/dashboard/${siteId}`} className="text-sm font-mono text-muted-foreground hover:text-foreground transition-colors">{siteId}</Link>
+        <span className="text-muted-foreground">/</span>
+        <span className="text-sm font-mono">Geo</span>
+          </div>
+          <ModeToggle/>
         </div>
       </header>
 
