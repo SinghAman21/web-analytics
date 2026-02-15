@@ -1,20 +1,15 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Link from 'next/link';
+import AppHeader from '@/components/shared/AppHeader';
+import AppFooter from '@/components/shared/AppFooter';
 
 export default function Account() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center gap-6">
-          <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">Pulse</Link>
-          <span className="w-px h-6 bg-border" />
-          <h1 className="text-sm font-mono text-muted-foreground">Account Settings</h1>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background flex flex-col">
+      <AppHeader title="Account Settings" />
 
-      <main className="max-w-2xl mx-auto px-6 lg:px-12 py-16">
+      <main className="max-w-2xl mx-auto px-6 lg:px-12 py-16 flex-1">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <p className="label mb-4">Profile</p>
           <h2 className="display-lg mb-16">
@@ -77,6 +72,8 @@ export default function Account() {
           </div>
         </motion.div>
       </main>
+      
+      <AppFooter />
     </div>
   );
 }

@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Check } from 'lucide-react';
+import AppHeader from '@/components/shared/AppHeader';
+import AppFooter from '@/components/shared/AppFooter';
 
 const plans = [
   {
@@ -26,14 +28,8 @@ const plans = [
 
 export default function Billing() {
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center gap-6">
-          <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">Pulse</Link>
-          <span className="w-px h-6 bg-border" />
-          <h1 className="text-sm font-mono text-muted-foreground">Billing</h1>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background flex flex-col">
+      <AppHeader title="Billing" />
 
       <main className="max-w-4xl mx-auto px-6 lg:px-12 py-16">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -111,6 +107,8 @@ export default function Billing() {
           </motion.div>
         </motion.div>
       </main>
+
+      <AppFooter />
     </div>
   );
 }

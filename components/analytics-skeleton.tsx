@@ -2,10 +2,11 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { TrendingUp, Lock, Globe, Monitor, Smartphone, Tablet } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import AppFooter from '@/components/shared/AppFooter';
 
 const overviewStats = {
   today: 89,
@@ -83,6 +84,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
   // const { siteId } = useParams();
   const router = useRouter();
   const [timeRange, setTimeRange] = useState<'today' | '7d' | '30d' | '90d'>('today');
+  const [activeTab, setActiveTab] = useState('overview');
   const totalPageviews = topPages.reduce((sum, p) => sum + p.views, 0);
 
   const handleGeoClick = () => {
@@ -90,43 +92,45 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <header className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">Pulse</Link>
-            <span className="w-px h-6 bg-border" />
-            <Link href="/dashboard" className="text-sm font-mono text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
-            <span className="text-muted-foreground">/</span>
-            <span className="text-sm font-mono">{siteId || 'mysite.com'}</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground">SIGNED-IN</span>
-            <span className="text-[10px] font-mono text-muted-foreground">90-day retention</span>
-            <div className="flex gap-1">
-              {(['today', '7d', '30d', '90d'] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setTimeRange(r)}
-                  className={`px-3 py-1.5 text-xs font-mono transition-colors ${
-                    timeRange === r ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-            {/* Geography Button */}
-            <button
-              onClick={handleGeoClick}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded border text-sm font-mono transition-colors bg-background text-foreground border-border hover:bg-muted"
-            >
-              <Globe className="w-4 h-4" />
-              Geography
-            </button>
-          </div>
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center gap-6">
+          <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">Pulse</Link>
+          <span className="w-px h-6 bg-border" />
+          <Link href="/dashboard" className="text-sm font-mono text-muted-foreground hover:text-foreground transition-colors">Dashboard</Link>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-sm font-mono">{siteId || 'mysite.com'}</span>
         </div>
       </header>
+
+      {/* Header Controls */}
+      <div className="border-b border-border bg-background/50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-4 flex items-center justify-end gap-4">
+          <span className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground">SIGNED-IN</span>
+          <span className="text-[10px] font-mono text-muted-foreground">90-day retention</span>
+          <div className="flex gap-1">
+            {(['today', '7d', '30d', '90d'] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setTimeRange(r)}
+                className={`px-3 py-1.5 text-xs font-mono transition-colors ${
+                  timeRange === r ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          {/* Geography Button */}
+          <button
+            onClick={handleGeoClick}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded border text-sm font-mono transition-colors bg-background text-foreground border-border hover:bg-muted"
+          >
+            <Globe className="w-4 h-4" />
+            Geography
+          </button>
+        </div>
+      </div>
 
       {/* Quick Stats — Signed-In: Total + Live active, Unique + Daily trend, Bounce + Session duration */}
       <section className="border-b border-border">
@@ -165,22 +169,35 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
       </section>
 
       <main className="max-w-7xl mx-auto px-6 lg:px-12 py-12">
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="h-auto p-0 bg-transparent rounded-none gap-0 border-b border-border mb-12 flex-wrap">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="h-auto p-0 bg-transparent rounded-none gap-0 border-b border-border mb-12 flex flex-wrap justify-start">
             {tabList.map((tab) => (
-              <TabsTrigger
-                key={tab}
-                value={tab.toLowerCase()}
-                className="relative px-5 py-4 text-sm font-mono rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground data-[state=active]:text-foreground transition-colors after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-foreground after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300"
-              >
-                {tab}
-              </TabsTrigger>
+              <div key={tab} className="relative">
+                <button
+                  onClick={() => setActiveTab(tab.toLowerCase())}
+                  className="relative px-5 py-4 text-sm font-mono rounded-none bg-transparent hover:bg-transparent text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-0 border-0"
+                  style={{
+                    color: activeTab === tab.toLowerCase() ? 'var(--foreground)' : 'var(--muted-foreground)',
+                  }}
+                >
+                  {tab}
+                </button>
+                {activeTab === tab.toLowerCase() && (
+                  <motion.div
+                    layoutId="underline-analytics"
+                    className="absolute bottom-0 left-1/2 h-px bg-foreground"
+                    initial={{ width: 0, marginLeft: 0 }}
+                    animate={{ width: '100%', marginLeft: '-50%' }}
+                    transition={{ duration: 0.3 }}
+                  />
+                )}
+              </div>
             ))}
-          </TabsList>
+          </div>
 
           {/* OVERVIEW TAB */}
           <TabsContent value="overview" className="mt-0 space-y-16">
-            <div className="grid lg:grid-cols-2 gap-12">
+            <div className="max-w-7xl px-6 lg:px-12 grid lg:grid-cols-2 gap-12">
               {/* Top Pages (Top 20, searchable) */}
               <section>
                 <div className="mb-8">
@@ -504,6 +521,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
           </TabsContent>
         </Tabs>
       </main>
+      <AppFooter />
     </div>
   );
 }

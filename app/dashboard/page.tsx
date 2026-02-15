@@ -3,6 +3,8 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowUpRight, Plus } from 'lucide-react';
+import AppHeader from '@/components/shared/AppHeader';
+import AppFooter from '@/components/shared/AppFooter';
 
 const sites = [
   { id: 'mysite-com', domain: 'mysite.com', routes: ['/', '/pricing', '/blog'], routeViews: [523, 312, 198], change: '+12%', status: 'active' },
@@ -21,21 +23,17 @@ export default function DashboardOverview() {
   const totalPageviews = sites.reduce((sum, s) => sum + s.routeViews.reduce((a, b) => a + b, 0), 0);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">Pulse</Link>
-            <span className="w-px h-6 bg-border" />
-            <h1 className="text-sm font-mono text-muted-foreground">Dashboard</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground">{currentTier.name.toUpperCase()}</span>
-            <Link href="/account" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Account</Link>
-            <Link href="/billing" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Billing</Link>
-          </div>
+    <div className="min-h-screen bg-background flex flex-col">
+      <AppHeader title="Dashboard" />
+
+      {/* Dashboard Controls */}
+      <div className="border-b border-border bg-background/50">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-4 flex items-center justify-end gap-4">
+          <span className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground">{currentTier.name.toUpperCase()}</span>
+          <Link href="/account" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Account</Link>
+          <Link href="/billing" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Billing</Link>
         </div>
-      </header>
+      </div>
 
       {/* Tier summary bar */}
       <section className="border-b border-border">
@@ -119,6 +117,8 @@ export default function DashboardOverview() {
           </div>
         </motion.div>
       </main>
+
+      <AppFooter />
     </div>
   );
 }
