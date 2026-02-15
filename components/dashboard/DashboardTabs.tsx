@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import OverviewTab from './tabs/OverviewTab';
@@ -15,25 +16,40 @@ const tabs = [
 ];
 
 export default function DashboardTabs() {
+  const [activeTab, setActiveTab] = useState('overview');
+
   return (
-    <Tabs defaultValue="overview" className="w-full">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       {/* Tab Navigation */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="border-b border-border mb-12"
       >
-        <TabsList className="h-auto p-0 bg-transparent rounded-none gap-0">
+        <div className="h-auto p-0 bg-transparent rounded-none gap-0 flex">
           {tabs.map((tab, i) => (
-            <TabsTrigger
-              key={tab.id}
-              value={tab.id}
-              className="relative px-6 py-4 text-sm font-mono rounded-none bg-transparent data-[state=active]:bg-transparent data-[state=active]:shadow-none text-muted-foreground data-[state=active]:text-foreground transition-colors after:absolute after:bottom-0 after:left-0 after:right-0 after:h-px after:bg-foreground after:scale-x-0 data-[state=active]:after:scale-x-100 after:transition-transform after:duration-300"
-            >
-              {tab.label}
-            </TabsTrigger>
+            <div key={tab.id} className="relative">
+              <button
+                onClick={() => setActiveTab(tab.id)}
+                className="relative px-6 py-4 text-sm font-mono rounded-none bg-transparent hover:bg-transparent text-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-0 border-0"
+                style={{
+                  color: activeTab === tab.id ? 'var(--foreground)' : 'var(--muted-foreground)',
+                }}
+              >
+                {tab.label}
+              </button>
+              {activeTab === tab.id && (
+                <motion.div
+                  layoutId="underline"
+                  className="absolute bottom-0 left-1/2 h-px bg-foreground"
+                  initial={{ width: 0, marginLeft: 0 }}
+                  animate={{ width: '100%', marginLeft: '-50%' }}
+                  transition={{ duration: 0.3 }}
+                />
+              )}
+            </div>
           ))}
-        </TabsList>
+        </div>
       </motion.div>
 
       {/* Tab Content */}
