@@ -25,12 +25,14 @@ export default function HeroSection() {
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
             className="lg:col-span-8"
           >
-            <h1 className="display-xl">
+            <h1 className="display-xl ">
               <span className="text-foreground">Simple</span>
               <br />
-              <span className="font-serif italic text-accent">analytics</span>
+              <section className='py-3'>
+              <span className="font-serif italic text-accent my-5">analytics</span>
               <span className="text-foreground"> for</span>
-              <br />
+              </section>
+              {/* <br /> */}
               <span className="text-foreground">modern sites.</span>
             </h1>
           </motion.div>
