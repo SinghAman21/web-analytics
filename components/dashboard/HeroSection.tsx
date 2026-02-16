@@ -29,7 +29,7 @@ export default function HeroSection() {
               <span className="text-foreground">Simple</span>
               <br />
               <section className='py-3'>
-              <span className="font-serif italic text-accent my-5">analytics</span>
+              <span className="font-serif italic text-orange-600 dark:text-orange-400 my-5">analytics</span>
               <span className="text-foreground"> for</span>
               </section>
               {/* <br /> */}

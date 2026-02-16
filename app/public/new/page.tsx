@@ -41,7 +41,7 @@ export default function PublicNew() {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to dashboards
+            Back to public dashboards
           </Link>
 
           <p className="label mb-4">Free Tier</p>

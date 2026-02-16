@@ -92,10 +92,10 @@ export default function PublicList() {
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">{site.siteUrl}</p>
                     </div>
                     <div className="col-span-4">
-                      <code className="text-xs font-mono text-accent">{site.hex}</code>
+                      <code className="text-xs font-mono">{site.hex}</code>
                     </div>
                     <div className="col-span-3">
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs">
                         {new Date(site.createdAt).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',

@@ -3,8 +3,8 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowUpRight, Plus } from 'lucide-react';
-import AppHeader from '@/components/shared/AppHeader';
 import AppFooter from '@/components/shared/AppFooter';
+import { ModeToggle } from '@/components/toggle';
 
 const sites = [
   { id: 'mysite-com', domain: 'mysite.com', routes: ['/', '/pricing', '/blog'], routeViews: [523, 312, 198], change: '+12%', status: 'active' },
@@ -24,16 +24,30 @@ export default function DashboardOverview() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <AppHeader title="Dashboard" />
-
-      {/* Dashboard Controls */}
-      <div className="border-b border-border bg-background/50">
-        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-4 flex items-center justify-end gap-4">
-          <span className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground">{currentTier.name.toUpperCase()}</span>
-          <Link href="/account" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Account</Link>
-          <Link href="/billing" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Billing</Link>
+      {/* Header */}
+      <motion.header
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="border-b border-border bg-background/50 backdrop-blur-sm"
+      >
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">
+              Pulse
+            </Link>
+            <span className="w-px h-6 bg-border" />
+            <h1 className="text-sm font-mono text-muted-foreground">Dashboard</h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <span className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground">{currentTier.name.toUpperCase()}</span>
+            <Link href="/account" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Account</Link>
+            <Link href="/billing" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Billing</Link>
+            <ModeToggle />
+          </div>
         </div>
-      </div>
+      </motion.header>
 
       {/* Tier summary bar */}
       <section className="border-b border-border">
@@ -76,12 +90,12 @@ export default function DashboardOverview() {
                 >
                   <Link
                     href={`/dashboard/${site.id}`}
-                    className="editorial-card-hover p-6 flex items-center justify-between group block"
+                    className="p-6 flex items-center justify-between group block border border-border bg-card hover:border-blue-600 dark:hover:border-blue-400 hover:bg-accent/5 transition-all"
                   >
                     <div className="flex items-center gap-6">
                       <span className="w-2 h-2 rounded-full bg-success" />
                       <div>
-                        <p className="font-mono text-sm group-hover:text-accent transition-colors">{site.domain}</p>
+                        <p className="font-mono text-sm text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{site.domain}</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {siteTotal.toLocaleString()} pageviews • {site.routes.length} routes
                         </p>
@@ -91,7 +105,7 @@ export default function DashboardOverview() {
                       <span className={`font-mono text-xs tabular-nums ${site.change.startsWith('+') ? 'text-success' : 'text-destructive'}`}>
                         {site.change}
                       </span>
-                      <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
                     </div>
                   </Link>
                 </motion.div>
@@ -110,7 +124,7 @@ export default function DashboardOverview() {
             </Link>
             <Link
               href="/billing"
-              className="px-6 py-3 text-sm font-mono text-accent border border-accent/30 hover:bg-accent/10 transition-colors"
+              className="px-6 py-3 text-sm font-mono border hover:bg-accent/90 transition-colors"
             >
               Upgrade to Pro →
             </Link>
