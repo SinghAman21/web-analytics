@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getPublicSites, type PublicSite } from '@/lib/publicSites';
 import { ArrowRight, Plus, BarChart3 } from 'lucide-react';
-import Header from '@/components/dashboard/Header';
+import { ModeToggle } from '@/components/toggle';
 
 export default function PublicList() {
   const [sites, setSites] = useState<PublicSite[]>([]);
@@ -15,8 +15,25 @@ export default function PublicList() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <motion.header
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="border-b border-border bg-background/50 backdrop-blur-sm"
+      >
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">
+              Pulse
+            </Link>
+            <span className="w-px h-6 bg-border" />
+            <h1 className="text-sm font-mono text-muted-foreground">Public Dashboards</h1>
+          </div>
+          <ModeToggle />
+        </div>
+      </motion.header>
 
       <main className="max-w-7xl mx-auto px-6 lg:px-12 pt-32 pb-24">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -53,7 +70,7 @@ export default function PublicList() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="editorial-card p-12 text-center"
+              className="border border-border bg-card p-12 text-center"
             >
               <BarChart3 className="w-8 h-8 text-muted-foreground mx-auto mb-4" />
               <h3 className="heading mb-2">No dashboards yet</h3>
@@ -68,7 +85,7 @@ export default function PublicList() {
               </Link>
             </motion.div>
           ) : (
-            <div className="space-y-px">
+            <div className="space-y-3">
               <div className="grid grid-cols-12 gap-4 px-4 py-3 text-xs uppercase tracking-[0.15em] text-muted-foreground border-b border-border">
                 <span className="col-span-4">Site Name</span>
                 <span className="col-span-4">Hex Code</span>
@@ -85,7 +102,7 @@ export default function PublicList() {
                 >
                   <Link
                     href={`/analytics/${site.hex}`}
-                    className="grid grid-cols-12 gap-4 px-4 py-4 editorial-card-hover group items-center"
+                    className="grid grid-cols-12 gap-4 px-4 py-4 border border-border bg-card hover:border-blue-600 dark:hover:border-blue-400 hover:bg-accent/5 transition-all group items-center"
                   >
                     <div className="col-span-4">
                       <p className="font-medium text-sm">{site.siteName}</p>
@@ -104,7 +121,7 @@ export default function PublicList() {
                       </span>
                     </div>
                     <div className="col-span-1 flex justify-end">
-                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
                     </div>
                   </Link>
                 </motion.div>
@@ -113,7 +130,7 @@ export default function PublicList() {
           )}
 
           {/* Upgrade CTA */}
-          <div className="mt-16 editorial-card p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="mt-16 border border-border bg-card p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div>
               <p className="label mb-2">Want more?</p>
               <h3 className="heading">Unlock live users, referrers & geo data</h3>

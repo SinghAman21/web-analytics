@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createPublicSite } from '@/lib/publicSites';
 import { ArrowLeft, Sparkles } from 'lucide-react';
-import Header from '@/components/dashboard/Header';
+import { ModeToggle } from '@/components/toggle';
 
 export default function PublicNew() {
   const router = useRouter();
@@ -31,8 +31,25 @@ export default function PublicNew() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="min-h-screen bg-background flex flex-col">
+      {/* Header */}
+      <motion.header
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="border-b border-border bg-background/50 backdrop-blur-sm"
+      >
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 py-6 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="font-serif text-2xl italic tracking-tight hover:opacity-70 transition-opacity">
+              Pulse
+            </Link>
+            <span className="w-px h-6 bg-border" />
+            <h1 className="text-sm font-mono text-muted-foreground">Create Dashboard</h1>
+          </div>
+          <ModeToggle />
+        </div>
+      </motion.header>
 
       <main className="max-w-2xl mx-auto px-6 lg:px-12 pt-32 pb-24">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -97,9 +114,9 @@ export default function PublicNew() {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-8"
             >
-              <div className="editorial-card p-8 text-center">
+              <div className="border border-border bg-card p-8 text-center">
                 <p className="label mb-4">Your Hex Code</p>
-                <code className="text-3xl md:text-4xl font-mono text-accent tracking-wider">
+                <code className="text-3xl md:text-4xl font-mono tracking-wider">
                   {generatedHex}
                 </code>
                 <p className="text-sm text-muted-foreground mt-4">
@@ -110,7 +127,7 @@ export default function PublicNew() {
                 </p>
               </div>
 
-              <div className="editorial-card p-6">
+              <div className="border border-border bg-card p-6">
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
                     <p className="text-sm font-medium">{siteName}</p>
