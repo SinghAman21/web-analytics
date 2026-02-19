@@ -5,7 +5,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 
-from routers import analytics, dashboard, public
+from routers import analytics, dashboard, public, tracker
 # from core.database import supabase
 
 # Lifespan event handler
@@ -48,6 +48,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(tracker.router, prefix="/public", tags=["tracker"])
 app.include_router(public.router, prefix="/api/public", tags=["public"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])

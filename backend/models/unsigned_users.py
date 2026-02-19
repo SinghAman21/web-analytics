@@ -1,56 +1,33 @@
-"""
-Supabase Schema Definitions
+-- 1. Create sites table (unchanged)
+CREATE TABLE unsigned_sites (
+  id SERIAL PRIMARY KEY,
+  hex_share_id VARCHAR(12) UNIQUE NOT NULL,
+  name VARCHAR(12) NOT NULL,
+  site_url VARCHAR(100) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
-These are NOT SQLAlchemy models but represent the Supabase tables:
+-- 2. Create partitioned raw_events (unchanged)
+CREATE TABLE unsigned_raw_events (
+  id BIGSERIAL,
+  site_hex VARCHAR(12) NOT NULL,
+  event_time TIMESTAMPTZ DEFAULT NOW(),
+  unique_cookie VARCHAR(64) NOT NULL,
+  session_id VARCHAR(64) NOT NULL,
+  page_path VARCHAR(255) NOT NULL,
+  device_type VARCHAR(10) NOT NULL,
+  is_bounce BOOLEAN DEFAULT FALSE,
+  referrer VARCHAR(512),
+  ip_hash VARCHAR(64),
+  screen_res VARCHAR(20),
+  PRIMARY KEY (id, event_time)
+) PARTITION BY RANGE (event_time);
 
-Table: sites
-  - id (UUID, primary key)
-  - name (text)
-  - hex_key (text, unique)
-  - created_at (timestamp with timezone)
+-- 3. Create partition
+CREATE TABLE unsigned_raw_events_2026_02 PARTITION OF unsigned_raw_events
+FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
 
-Table: pageviews
-  - id (bigint, primary key, auto-incrementing)
-  - hex_key (text, foreign key -> sites.hex_key) [CHANGED: Using hex_key as FK]
-  - path (text)
-  - session_id (text)
-  - is_bounce (boolean)
-  - created_at (timestamp with timezone)
-  - ip_hash (text)
-  - ua_hash (text)
-"""
-
-from typing import Optional, List
-from pydantic import BaseModel
-import uuid
-from datetime import datetime
-
-# Pydantic models for API validation
-
-class SiteCreate(BaseModel):
-    name: str
-    hex_key: str
-
-class SiteResponse(BaseModel):
-    id: str
-    name: str
-    hex_key: str
-    created_at: datetime
-
-class PageviewCreate(BaseModel):
-    hex_key: str  # FK to sites.hex_key
-    path: str
-    session_id: str
-    is_bounce: bool = False
-    ip_hash: str
-    ua_hash: str
-
-class PageviewResponse(BaseModel):
-    id: int
-    hex_key: str  # FK to sites.hex_key
-    path: str
-    session_id: str
-    is_bounce: bool
-    created_at: datetime
-    ip_hash: str
-    ua_hash: str
+-- 4. ADD FOREIGN KEY CONSTRAINT (this is what you need)
+ALTER TABLE unsigned_raw_events 
+ADD CONSTRAINT fk_unsigned_raw_events_site_hex 
+FOREIGN KEY (site_hex) REFERENCES unsigned_sites(hex_share_id);
