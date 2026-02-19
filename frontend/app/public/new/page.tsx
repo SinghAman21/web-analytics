@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createPublicSite } from '@/lib/publicSites';
+import { createPublicSite } from '@/lib/apis/publicSites';
 import { ArrowLeft, Sparkles } from 'lucide-react';
 import { ModeToggle } from '@/components/toggle';
 
@@ -24,9 +24,17 @@ export default function PublicNew() {
     setStep('confirm');
   };
 
+  const ensureHttpsUrl = (url: string): string => {
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return `https://${url}`;
+    }
+    return url;
+  };
+
   const handleSubmit = () => {
     if (!generatedHex) return;
-    createPublicSite(siteName.trim(), siteUrl.trim());
+    const fullUrl = ensureHttpsUrl(siteUrl.trim());
+    createPublicSite(siteName.trim(), fullUrl);
     router.push('/public');
   };
 
@@ -88,13 +96,16 @@ export default function PublicNew() {
 
               <div>
                 <label className="label mb-2 block">Site URL</label>
-                <input
-                  type="url"
-                  value={siteUrl}
-                  onChange={(e) => setSiteUrl(e.target.value)}
-                  className="w-full bg-secondary border border-border px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                  placeholder="https://myblog.com"
-                />
+                <div className="relative flex items-center">
+                  <span className="absolute left-4 text-sm font-mono text-muted-foreground">https://</span>
+                  <input
+                    type="text"
+                    value={siteUrl}
+                    onChange={(e) => setSiteUrl(e.target.value)}
+                    className="w-full bg-secondary border border-border pl-[85px] pr-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    // placeholder="useraman.me"
+                  />
+                </div>
               </div>
 
               <button
@@ -131,7 +142,7 @@ export default function PublicNew() {
                 <div className="flex items-start gap-4">
                   <div className="flex-1">
                     <p className="text-sm font-medium">{siteName}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{siteUrl}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{ensureHttpsUrl(siteUrl)}</p>
                   </div>
                   <span className="label bg-secondary px-3 py-1">Free</span>
                 </div>

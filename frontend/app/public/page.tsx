@@ -3,15 +3,29 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getPublicSites, type PublicSite } from '@/lib/publicSites';
+import { getPublicSites, type PublicSite } from '@/lib/apis/publicSites';
 import { ArrowRight, Plus, BarChart3 } from 'lucide-react';
 import { ModeToggle } from '@/components/toggle';
 
 export default function PublicList() {
   const [sites, setSites] = useState<PublicSite[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setSites(getPublicSites());
+    const fetchSites = async () => {
+      try {
+        setLoading(true);
+        const data = await getPublicSites();
+        setSites(data);
+      } catch (error) {
+        console.error('Failed to fetch sites:', error);
+        setSites([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchSites();
   }, []);
 
   return (
@@ -79,7 +93,7 @@ export default function PublicList() {
               </p>
               <Link
                 href="/public/new"
-                className="inline-flex items-center gap-2 text-sm font-mono text-accent hover:opacity-80 transition-opacity"
+                className="inline-flex items-center gap-2 text-sm font-mono hover:opacity-80 transition-opacity"
               >
                 Get started <ArrowRight className="w-4 h-4" />
               </Link>
@@ -95,25 +109,25 @@ export default function PublicList() {
 
               {sites.map((site, i) => (
                 <motion.div
-                  key={site.hex}
+                  key={site.hex_share_id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.05 * i }}
                 >
                   <Link
-                    href={`/analytics/${site.hex}`}
+                    href={`/analytics/${site.hex_share_id}`}
                     className="grid grid-cols-12 gap-4 px-4 py-4 border border-border bg-card hover:border-blue-600 dark:hover:border-blue-400 hover:bg-accent/5 transition-all group items-center"
                   >
                     <div className="col-span-4">
-                      <p className="font-medium text-sm">{site.siteName}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{site.siteUrl}</p>
+                      <p className="font-medium text-sm">{site.name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{site.site_url}</p>
                     </div>
                     <div className="col-span-4">
-                      <code className="text-xs font-mono">{site.hex}</code>
+                      <code className="text-xs font-mono">{site.hex_share_id}</code>
                     </div>
                     <div className="col-span-3">
                       <span className="text-xs">
-                        {new Date(site.createdAt).toLocaleDateString('en-US', {
+                        {new Date(site.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric',
