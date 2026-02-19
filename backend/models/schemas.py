@@ -30,3 +30,14 @@ class UltrafreeSiteList(BaseModel):
     success: bool
     data: list[UltrafreeSiteResponse]
     count: int
+
+class EventData(BaseModel):
+    """Schema for incoming event data from frontend tracker"""
+    site_hex: str
+    unique_cookie: str
+    session_id: str
+    page_path: str
+    device_type: str
+    is_bounce: bool
+    referrer: Optional[str] = None
+    screen_res: Optional[str] = None

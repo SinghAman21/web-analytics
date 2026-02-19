@@ -2,7 +2,8 @@ from core.config import supabase
 from typing import Optional
 import secrets
 import string
-
+import hashlib
+from datetime import datetime
 
 def create_ultrafree(
     site_name: str,
@@ -103,3 +104,36 @@ def list_ultrafree(limit: int = 100, offset: int = 0) -> dict:
     
     except Exception as e:
         raise Exception(f"Error listing ultrafree sites: {str(e)}")
+
+def log_ultrafreeevent(event_data: dict, ip_address: str) -> dict:
+    """
+    Insert an event into ultrafree_raw_events table
+    
+    Args:
+        event_data: The event data from frontend
+        ip_address: User's IP address (from request)
+    
+    Returns:
+        The inserted event record
+    """
+    try:
+        # Hash the IP address for privacy
+        ip_hash = hashlib.sha256(ip_address.encode()).hexdigest()
+        
+        # Insert into ultrafree_raw_events
+        response = supabase.table("ultrafree_raw_events").insert({
+            "site_hex": event_data["site_hex"],
+            "unique_cookie": event_data["unique_cookie"],
+            "session_id": event_data["session_id"],
+            "page_path": event_data["page_path"],
+            "device_type": event_data["device_type"],
+            "is_bounce": event_data["is_bounce"],
+            "referrer": event_data.get("referrer"),
+            "ip_hash": ip_hash,
+            "screen_res": event_data.get("screen_res"),
+        }).execute()
+        
+        if response.data:
+            return response.data[0]
+        else:
+            raise Exception("Failed to log event in Supabase")

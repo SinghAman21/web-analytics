@@ -8,8 +8,8 @@ import uvicorn
 
 # from routers import analytics, dashboard, public, tracker
 from core.config import supabase
-from models.schemas import UltrafreeSiteCreate, UltrafreeSiteResponse, UltrafreeSiteList
-from services.ultrafree import create_ultrafree, list_ultrafree
+from models.schemas import UltrafreeSiteCreate, UltrafreeSiteResponse, UltrafreeSiteList, EventData
+from services.ultrafree import create_ultrafree, list_ultrafree, log_ultrafreeevent
 
 # Lifespan event handler
 @asynccontextmanager
@@ -124,6 +124,27 @@ async def list_ultrafree_sites_endpoint(limit: int = 20, offset: int = 0):
             "data": result["data"],
             "count": len(result["data"]),
             "total": result["total"]
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/events")
+async def log_event_endpoint(event: EventData, request: Request):
+    """
+    """
+    try:
+        # Get client IP from request
+        client_ip = request.client.host or "unknown"
+        
+        # Convert Pydantic model to dict
+        event_dict = event.model_dump()
+        
+        # Call service function to log event
+        result = log_ultrafreeevent(event_dict, client_ip)
+        return {
+            "success": True,
+            "data": result,
+            "message": "Event logged successfully"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
