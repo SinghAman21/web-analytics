@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.gzip import GZipMiddleware
@@ -157,3 +157,16 @@ if __name__ == "__main__":
         reload=True,
         log_level="info"
     )
+
+curl -X POST http://localhost:8000/api/events   -H "Content-Type: application/json"   -d '{
+    "site_hex": "rfr3mknj2grl",
+    "unique_cookie": "user-uuid",
+    "session_id": "session-uuid",
+    "page_path": "/home",
+    "device_type": "desktop",
+    "is_bounce": false,
+    "referrer": "google.com",
+    "screen_res": "1920x1080"
+  }'
+
+

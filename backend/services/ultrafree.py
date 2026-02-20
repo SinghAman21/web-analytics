@@ -137,3 +137,6 @@ def log_ultrafreeevent(event_data: dict, ip_address: str) -> dict:
             return response.data[0]
         else:
             raise Exception("Failed to log event in Supabase")
+    
+    except Exception as e:
+        raise Exception(f"Error logging event: {str(e)}")
