@@ -1,5 +1,5 @@
 -- 1. Create sites table (unchanged)
-CREATE TABLE unsigned_sites (
+CREATE TABLE ultrafree (
   id SERIAL PRIMARY KEY,
   hex_share_id VARCHAR(12) UNIQUE NOT NULL,
   name VARCHAR(12) NOT NULL,
@@ -8,7 +8,7 @@ CREATE TABLE unsigned_sites (
 );
 
 -- 2. Create partitioned raw_events (unchanged)
-CREATE TABLE unsigned_raw_events (
+CREATE TABLE ultrafree_raw_events (
   id BIGSERIAL,
   site_hex VARCHAR(12) NOT NULL,
   event_time TIMESTAMPTZ DEFAULT NOW(),
@@ -24,10 +24,10 @@ CREATE TABLE unsigned_raw_events (
 ) PARTITION BY RANGE (event_time);
 
 -- 3. Create partition
-CREATE TABLE unsigned_raw_events_2026_02 PARTITION OF unsigned_raw_events
+CREATE TABLE ultrafree_raw_events_2026_02 PARTITION OF ultrafree_raw_events
 FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
 
 -- 4. ADD FOREIGN KEY CONSTRAINT (this is what you need)
-ALTER TABLE unsigned_raw_events 
-ADD CONSTRAINT fk_unsigned_raw_events_site_hex 
-FOREIGN KEY (site_hex) REFERENCES unsigned_sites(hex_share_id);
+ALTER TABLE ultrafree_raw_events 
+ADD CONSTRAINT fk_ultrafree_raw_events_site_hex 
+FOREIGN KEY (site_hex) REFERENCES ultrafree(hex_share_id);

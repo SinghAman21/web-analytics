@@ -6,10 +6,10 @@ from contextlib import asynccontextmanager
 from pydantic import BaseModel
 import uvicorn
 
-from routers import analytics, dashboard, public, tracker
+# from routers import analytics, dashboard, public, tracker
 from core.config import supabase
-from models.schemas import UnsignedSiteCreate, UnsignedSiteResponse, UnsignedSiteList
-from services.unsigned_sites import create_unsigned_site, list_unsigned_sites
+from models.schemas import UltrafreeSiteCreate, UltrafreeSiteResponse, UltrafreeSiteList
+from services.ultrafree import create_ultrafree, list_ultrafree
 
 # Lifespan event handler
 @asynccontextmanager
@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
     # Startup - test Supabase connection
     try:
         # Test connection by querying sites table
-        response = supabase.table("unsigned_sites").select("id").limit(1).execute()
+        response = supabase.table("ultrafree").select("id").limit(1).execute()
         print("✓ Connected to Supabase")
     except Exception as e:
         print(f"⚠️  Supabase connection warning: {e}")
@@ -74,11 +74,11 @@ async def root():
     }
 
 
-# Unsigned Sites endpoint
-@app.post("/api/unsigned-sites")
-async def create_unsigned_site_endpoint(request: UnsignedSiteCreate):
+# Ultrafree Sites endpoint
+@app.post("/api/ultrafree")
+async def create_ultrafree_site_endpoint(request: UltrafreeSiteCreate):
     """
-    Create a new unsigned site (public dashboard) without authentication.
+    Create a new ultrafree site (public dashboard) without authentication.
     
     Request body:
         - site_name: Name of the site
@@ -89,7 +89,7 @@ async def create_unsigned_site_endpoint(request: UnsignedSiteCreate):
         The created site record with all details
     """
     try:
-        site = create_unsigned_site(
+        site = create_ultrafree(
             site_name=request.site_name,
             site_url=request.site_url,
             hex_share_id=request.hex_share_id,
@@ -105,20 +105,20 @@ async def create_unsigned_site_endpoint(request: UnsignedSiteCreate):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/unsigned-sites")
-async def list_unsigned_sites_endpoint(limit: int = 20, offset: int = 0):
+@app.get("/api/ultrafree")
+async def list_ultrafree_sites_endpoint(limit: int = 20, offset: int = 0):
     """
-    Get all unsigned public sites with pagination.
+    Get all ultrafree public sites with pagination.
     
     Query parameters:
         - limit: Number of sites to return (default: 20)
         - offset: Number of sites to skip (default: 0)
     
     Returns:
-        List of all unsigned sites ordered by creation date (newest first)
+        List of all ultrafree sites ordered by creation date (newest first)
     """
     try:
-        result = list_unsigned_sites(limit=limit, offset=offset)
+        result = list_ultrafree(limit=limit, offset=offset)
         return {
             "success": True,
             "data": result["data"],

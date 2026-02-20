@@ -24,11 +24,11 @@ function generateHexCode(): string {
 }
 
 /**
- * Fetch all public unsigned sites from the backend
+ * Fetch all public ultrafree sites from the backend
  */
 export async function getPublicSites(): Promise<PublicSite[]> {
   try {
-    const response = await fetch(`${API_URL}/api/unsigned-sites`, {
+    const response = await fetch(`${API_URL}/api/ultrafree`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ export async function getPublicSites(): Promise<PublicSite[]> {
 }
 
 /**
- * Create a new unsigned public site in Supabase
+ * Create a new ultrafree public site in Supabase
  */
 export async function createPublicSite(
   siteName: string,
@@ -58,7 +58,7 @@ export async function createPublicSite(
   const hexId = generateHexCode();
   
   try {
-    const response = await fetch(`${API_URL}/api/unsigned-sites`, {
+    const response = await fetch(`${API_URL}/api/ultrafree`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

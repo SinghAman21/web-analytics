@@ -4,13 +4,13 @@ import secrets
 import string
 
 
-def create_unsigned_site(
+def create_ultrafree(
     site_name: str,
     site_url: str,
     hex_share_id: str,
 ) -> dict:
     """
-    Create an unsigned site in Supabase.
+    Create an ultrafree site in Supabase.
     
     Args:
         site_name: Name of the site
@@ -32,8 +32,8 @@ def create_unsigned_site(
         raise ValueError("Hex share ID must be 12 characters")
     
     try:
-        # Insert into unsigned_sites table
-        response = supabase.table("unsigned_sites").insert({
+        # Insert into ultrafree_sites table
+        response = supabase.table("ultrafree").insert({
             "hex_share_id": hex_share_id,
             "name": site_name.strip(),
             "site_url": site_url.strip(),
@@ -46,12 +46,12 @@ def create_unsigned_site(
     
     except Exception as e:
         # Re-raise with more context
-        raise Exception(f"Error creating unsigned site: {str(e)}")
+        raise Exception(f"Error creating ultrafree site: {str(e)}")
 
 
-def get_unsigned_site(hex_share_id: str) -> Optional[dict]:
+def get_ultrafree(hex_share_id: str) -> Optional[dict]:
     """
-    Retrieve an unsigned site by its hex_share_id.
+    Retrieve an ultrafree site by its hex_share_id.
     
     Args:
         hex_share_id: The hex ID of the site
@@ -60,19 +60,19 @@ def get_unsigned_site(hex_share_id: str) -> Optional[dict]:
         The site record or None if not found
     """
     try:
-        response = supabase.table("unsigned_sites").select(
+        response = supabase.table("ultrafree").select(
             "*"
         ).eq("hex_share_id", hex_share_id).execute()
         
         return response.data[0] if response.data else None
     
     except Exception as e:
-        raise Exception(f"Error retrieving unsigned site: {str(e)}")
+        raise Exception(f"Error retrieving ultrafree site: {str(e)}")
 
 
-def list_unsigned_sites(limit: int = 100, offset: int = 0) -> dict:
+def list_ultrafree(limit: int = 100, offset: int = 0) -> dict:
     """
-    List unsigned sites with pagination.
+    List ultrafree sites with pagination.
     
     Args:
         limit: Maximum number of sites to return
@@ -83,14 +83,14 @@ def list_unsigned_sites(limit: int = 100, offset: int = 0) -> dict:
     """
     try:
         # Get total count
-        count_response = supabase.table("unsigned_sites").select(
+        count_response = supabase.table("ultrafree").select(
             "id", count="exact"
         ).execute()
         
         total_count = count_response.count or 0
         
         # Get paginated data
-        response = supabase.table("unsigned_sites").select(
+        response = supabase.table("ultrafree").select(
             "*"
         ).order("created_at", desc=True).range(offset, offset + limit - 1).execute()
         
@@ -102,4 +102,4 @@ def list_unsigned_sites(limit: int = 100, offset: int = 0) -> dict:
         }
     
     except Exception as e:
-        raise Exception(f"Error listing unsigned sites: {str(e)}")
+        raise Exception(f"Error listing ultrafree sites: {str(e)}")

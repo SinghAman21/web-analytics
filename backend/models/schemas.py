@@ -6,15 +6,15 @@ from datetime import datetime
 from typing import Optional
 
 
-class UnsignedSiteCreate(BaseModel):
-    """Schema for creating an unsigned site"""
+class UltrafreeSiteCreate(BaseModel):
+    """Schema for creating an ultrafree site"""
     site_name: str
     site_url: str
     hex_share_id: str
 
 
-class UnsignedSiteResponse(BaseModel):
-    """Schema for unsigned site response"""
+class UltrafreeSiteResponse(BaseModel):
+    """Schema for ultrafree site response"""
     id: Optional[int] = None
     hex_share_id: str
     name: str
@@ -25,8 +25,8 @@ class UnsignedSiteResponse(BaseModel):
         from_attributes = True
 
 
-class UnsignedSiteList(BaseModel):
-    """Schema for list of unsigned sites"""
+class UltrafreeSiteList(BaseModel):
+    """Schema for list of ultrafree sites"""
     success: bool
-    data: list[UnsignedSiteResponse]
+    data: list[UltrafreeSiteResponse]
     count: int
