@@ -5,6 +5,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
 import uvicorn
+import os
 
 # from routers import analytics, dashboard, public, tracker
 from core.config import supabase
@@ -44,8 +45,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:3000",
         "http://localhost:3001",
-        "https://*.vercel.app",
-        "https://*.netlify.app"
+        "https://pulsev0.vercel.app",
+        # "https://*.netlify.app"
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -150,23 +151,25 @@ async def log_event_endpoint(event: EventData, request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))  # Fallback to 8000 locally
+    reload=os.getenv("ENV") != "production"  # Or similar logic
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=8000,
-        reload=True,
+        port=port,
+        reload=reload,
         log_level="info"
     )
 
-curl -X POST http://localhost:8000/api/events   -H "Content-Type: application/json"   -d '{
-    "site_hex": "rfr3mknj2grl",
-    "unique_cookie": "user-uuid",
-    "session_id": "session-uuid",
-    "page_path": "/home",
-    "device_type": "desktop",
-    "is_bounce": false,
-    "referrer": "google.com",
-    "screen_res": "1920x1080"
-  }'
+# curl -X POST http://localhost:8000/api/events   -H "Content-Type: application/json"   -d '{
+#     "site_hex": "rfr3mknj2grl",
+#     "unique_cookie": "user-uuid",
+#     "session_id": "session-uuid",
+#     "page_path": "/home",
+#     "device_type": "desktop",
+#     "is_bounce": false,
+#     "referrer": "google.com",
+#     "screen_res": "1920x1080"
+#   }'
 
 
