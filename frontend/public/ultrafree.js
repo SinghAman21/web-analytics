@@ -19,7 +19,7 @@
 
   // Configuration
   const CONFIG = {
-    BACKEND_URL: '/api/events',
+    BACKEND_URL: '/api/ultrafreeevents',
     COOKIE_NAME: 'ultrafree_cookie',
     SESSION_STORAGE_KEY: 'ultrafree_session',
     COOKIE_EXPIRY_DAYS: 365,
