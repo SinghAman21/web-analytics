@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Share2, ExternalLink, Lock, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { 
   getAnalytics, 
   getSiteInfo, 
@@ -49,10 +50,6 @@ export default function PublicDashboard() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchData();
-  }, [hex]);
 
   useEffect(() => {
     fetchData();
@@ -127,7 +124,13 @@ export default function PublicDashboard() {
               <RefreshCw className="w-3 h-3" />
               Refresh
             </button>
-            <button className="flex items-center gap-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(window.location.href);
+                toast.success('Link copied to clipboard');
+              }}
+              className="flex cursor-pointer items-center gap-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+            >
               <Share2 className="w-3 h-3" />
               Share
             </button>
