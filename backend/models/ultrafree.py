@@ -1,7 +1,7 @@
 -- 1. Create sites table (unchanged)
 CREATE TABLE ultrafree (
   id SERIAL PRIMARY KEY,
-  hex_share_id VARCHAR(12) UNIQUE NOT NULL,
+  hex_share_id VARCHAR(12) UNIQUE NOT NULL PRIMARY KEY,
   name VARCHAR(12) NOT NULL,
   site_url VARCHAR(100) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()

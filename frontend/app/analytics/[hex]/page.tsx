@@ -3,20 +3,14 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Share2, ExternalLink, Lock } from 'lucide-react';
-
-const mockData = {
-  site: 'mysite.com',
-  // Pageviews = sum of all route views (e.g. / = 523, /pricing = 312, /blog = 198, /about = 112, /contact = 89)
-  pageviews: 1234,
-  uniqueVisitors: 567,
-  bounce: 43,
-  mobile: 62,
-  desktop: 38,
-  dataRetention: '30 days',
-  rateLimit: '100 req/min',
-  sparkline: [45, 52, 38, 64, 71, 59, 82, 76, 68, 91, 85, 73, 88, 94, 79, 63, 72, 86, 91, 78, 85, 93, 88, 72, 81, 95, 89, 76, 83, 91],
-};
+import { Share2, ExternalLink, Lock, RefreshCw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { 
+  getAnalytics, 
+  getSiteInfo, 
+  type AnalyticsData, 
+  type SiteInfo 
+} from '@/lib/apis/ultrafreeanalytics';
 
 const lockedFeatures = [
   { label: 'Page Performance', tier: 'Signed-In' },
@@ -30,7 +24,90 @@ const lockedFeatures = [
 
 export default function PublicDashboard() {
   const { hex } = useParams();
-  const maxSparkline = Math.max(...mockData.sparkline);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [siteInfo, setSiteInfo] = useState<SiteInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    if (!hex || typeof hex !== 'string') return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [analyticsData, siteData] = await Promise.all([
+        getAnalytics(hex),
+        getSiteInfo(hex)
+      ]);
+      setAnalytics(analyticsData);
+      setSiteInfo(siteData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load data');
+      console.error('Error fetching data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [hex]);
+
+  useEffect(() => {
+    fetchData();
+  }, [hex]);
+
+  // Process daily data for chart
+  const processDailyData = () => {
+    if (!analytics?.daily_data || analytics.daily_data.length === 0) {
+      return [];
+    }
+
+    return analytics.daily_data.map(item => {
+      const date = new Date(item.date);
+      return {
+        date: item.date,
+        views: item.views,
+        day: date.getDate(),
+        dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
+        monthName: date.toLocaleDateString('en-US', { month: 'long' }),
+        year: date.getFullYear()
+      };
+    });
+  };
+
+  const dailyData = processDailyData();
+  const maxViews = Math.max(...dailyData.map(d => d.views), 1);
+  const currentMonth = dailyData.length > 0 ? dailyData[dailyData.length - 1].monthName : '';
+  const currentYear = dailyData.length > 0 ? dailyData[dailyData.length - 1].year : new Date().getFullYear();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-3">
+          <RefreshCw className="w-5 h-5 animate-spin" />
+          <span className="font-mono text-sm">Loading analytics...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !analytics || !siteInfo) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">{error || 'No data found'}</p>
+          <button 
+            onClick={fetchData}
+            className="bg-foreground text-background px-6 py-3 text-sm font-mono hover:opacity-90 transition-opacity"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -43,6 +120,13 @@ export default function PublicDashboard() {
           </div>
           <div className="flex items-center gap-4">
             <span className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground">FREE</span>
+            <button 
+              onClick={fetchData}
+              className="flex items-center gap-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Refresh
+            </button>
             <button className="flex items-center gap-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">
               <Share2 className="w-3 h-3" />
               Share
@@ -57,16 +141,23 @@ export default function PublicDashboard() {
           <div className="mb-16">
             <p className="label mb-4">Analytics for</p>
             <h1 className="display-lg mb-2">
-              <span className="font-serif italic">{mockData.site}</span>
+              <span className="font-serif italic">{siteInfo.name}</span>
             </h1>
             <div className="flex items-center gap-4 text-muted-foreground text-sm">
               <div className="flex items-center gap-2">
                 <ExternalLink className="w-3 h-3" />
-                <span className="font-mono">pulse.app/analytics/{hex}</span>
+                <a 
+                  href={siteInfo.site_url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="font-mono hover:text-foreground transition-colors"
+                >
+                  {siteInfo.site_url}
+                </a>
               </div>
               <span className="w-px h-4 bg-border" />
-              <span className="font-mono text-xs">{mockData.dataRetention} retention</span>
-              <span className="font-mono text-xs">{mockData.rateLimit}</span>
+              <span className="font-mono text-xs">30 days retention</span>
+              <span className="font-mono text-xs">ID: {hex}</span>
             </div>
           </div>
 
@@ -74,41 +165,69 @@ export default function PublicDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border border-border divide-x divide-border mb-16">
             <div className="p-6">
               <p className="label mb-3">Pageviews</p>
-              <p className="text-4xl font-mono font-light tabular-nums">{mockData.pageviews.toLocaleString()}</p>
+              <p className="text-4xl font-mono font-light tabular-nums">
+                {analytics.total_pageviews.toLocaleString()}
+              </p>
               <p className="text-[10px] text-muted-foreground mt-2 font-mono">Sum of all routes</p>
             </div>
             <div className="p-6">
               <p className="label mb-3">Unique Visitors</p>
-              <p className="text-4xl font-mono font-light tabular-nums">{mockData.uniqueVisitors.toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground mt-2 font-mono">Aggregate only</p>
+              <p className="text-4xl font-mono font-light tabular-nums">
+                {analytics.unique_visitors.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-2 font-mono">Unique cookies</p>
             </div>
             <div className="p-6">
               <p className="label mb-3">Bounce Rate</p>
-              <p className="text-4xl font-mono font-light tabular-nums">{mockData.bounce}%</p>
-              <p className="text-[10px] text-muted-foreground mt-2 font-mono">Aggregate only</p>
+              <p className="text-4xl font-mono font-light tabular-nums">
+                {analytics.bounce_rate}%
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-2 font-mono">Single-page sessions</p>
             </div>
             <div className="p-6">
-              <p className="label mb-3">Session Tracking</p>
-              <p className="text-sm text-muted-foreground mt-2">No refresh counting</p>
-              <p className="text-[10px] text-muted-foreground mt-1 font-mono">via session ID</p>
+              <p className="label mb-3">Sessions</p>
+              <p className="text-4xl font-mono font-light tabular-nums">
+                {analytics.sessions.toLocaleString()}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-2 font-mono">Avg {analytics.avg_pages_per_session} pages/session</p>
             </div>
           </div>
 
-          {/* Sparkline chart */}
+          {/* Daily chart */}
           <section className="mb-16">
-            <p className="label mb-6">Last 30 Days</p>
+            <p className="label mb-6">{currentMonth} {currentYear}</p>
             <div className="editorial-card p-8">
-              <div className="flex items-end gap-1 h-32">
-                {mockData.sparkline.map((val, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ height: 0 }}
-                    animate={{ height: `${(val / maxSparkline) * 100}%` }}
-                    transition={{ delay: i * 0.02, duration: 0.4 }}
-                    className="flex-1 bg-foreground/60 hover:bg-foreground transition-colors rounded-sm"
-                  />
-                ))}
-              </div>
+              {dailyData.length > 0 ? (
+                <>
+                  <div className="flex items-end gap-1 min-h-[200px] mb-4">
+                    {dailyData.map((item, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
+                        {item.views > 0 && (
+                          <motion.div
+                            initial={{ height: 0 }}
+                            animate={{ height: `${item.views}px` }}
+                            transition={{ delay: i * 0.01, duration: 0.4 }}
+                            className="w-full bg-foreground/60 hover:bg-foreground transition-colors rounded-sm cursor-pointer"
+                            title={`${item.date}: ${item.views} views`}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {dailyData.map((item, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center text-center min-w-0">
+                        <span className="text-[10px] font-mono text-foreground">{item.day}</span>
+                        <span className="text-[8px] font-mono text-muted-foreground">{item.dayName}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="min-h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+                  No data available
+                </div>
+              )}
             </div>
           </section>
 
@@ -121,12 +240,12 @@ export default function PublicDashboard() {
             <div className="editorial-card p-8">
               <div className="flex items-center gap-12">
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-mono font-light tabular-nums">{mockData.mobile}%</span>
+                  <span className="text-4xl font-mono font-light tabular-nums">{analytics.mobile_percentage}%</span>
                   <span className="text-sm text-muted-foreground">Mobile</span>
                 </div>
                 <span className="text-muted-foreground text-2xl font-light">/</span>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-mono font-light tabular-nums">{mockData.desktop}%</span>
+                  <span className="text-4xl font-mono font-light tabular-nums">{analytics.desktop_percentage}%</span>
                   <span className="text-sm text-muted-foreground">Desktop</span>
                 </div>
               </div>
@@ -134,13 +253,13 @@ export default function PublicDashboard() {
                 <motion.div
                   className="h-full bg-foreground"
                   initial={{ width: 0 }}
-                  animate={{ width: `${mockData.mobile}%` }}
+                  animate={{ width: `${analytics.mobile_percentage}%` }}
                   transition={{ duration: 0.6 }}
                 />
                 <motion.div
                   className="h-full bg-foreground/30"
                   initial={{ width: 0 }}
-                  animate={{ width: `${mockData.desktop}%` }}
+                  animate={{ width: `${analytics.desktop_percentage}%` }}
                   transition={{ delay: 0.1, duration: 0.6 }}
                 />
               </div>
@@ -174,7 +293,7 @@ export default function PublicDashboard() {
               <Link href="/register" className="bg-foreground text-background px-6 py-3 text-sm font-mono hover:opacity-90 transition-opacity">
                 Sign Up Free →
               </Link>
-              <Link href="/billing" className="px-6 py-3 text-sm font-mono text-accent border border-accent/30 hover:bg-accent/10 transition-colors">
+              <Link href="/billing" className="px-6 py-3 text-sm font-mono border hover:bg-accent/50 transition-colors">
                 View Pro Plan
               </Link>
             </div>

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from models.schemas import UltrafreeSiteCreate, EventData
 from services.ultrafree import create_ultrafree, list_ultrafree, log_ultrafreeevent
+from processing.ultrafree import process_analytics
 
 router = APIRouter()
 
@@ -30,6 +31,32 @@ async def create_ultrafree_site_endpoint(request: UltrafreeSiteCreate):
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/ultrafree/{hex_id}")
+async def get_ultrafree_site_endpoint(hex_id: str):
+    """
+    Get a single ultrafree site by its hex_share_id.
+    
+    Path parameters:
+        - hex_id: The hex share ID of the site
+    
+    Returns:
+        The site record with all details
+    """
+    try:
+        from services.ultrafree import get_ultrafree
+        site = get_ultrafree(hex_id)
+        if not site:
+            raise HTTPException(status_code=404, detail="Site not found")
+        return {
+            "success": True,
+            "data": site
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -75,6 +102,29 @@ async def log_event_endpoint(event: EventData, request: Request):
             "success": True,
             "data": result,
             "message": "Event logged successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/api/analytics/{hex_id}")
+async def get_analytics_endpoint(hex_id: str):
+    """
+    Get processed analytics data for a site.
+    Ultrafree sites always show last 30 days of data.
+    
+    Path parameters:
+        - hex_id: The hex share ID of the site
+    
+    Returns:
+        Processed analytics metrics including pageviews, visitors, bounce rate, etc.
+    """
+    try:
+        # Ultrafree analytics always shows last 30 days (720 hours)
+        analytics = process_analytics(site_hex=hex_id, hours=720)
+        return {
+            "success": True,
+            "data": analytics
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
