@@ -2,7 +2,17 @@
 
 import { motion } from 'framer-motion';
 
-const liveUsers = [
+type UserStatus = 'active' | 'converting' | 'exiting';
+
+interface LiveUser {
+  id: number;
+  location: string;
+  path: string;
+  duration: string;
+  status: UserStatus;
+}
+
+const liveUsers: LiveUser[] = [
   { id: 1, location: 'San Francisco', path: '/pricing → /features', duration: '3:42', status: 'active' },
   { id: 2, location: 'London', path: '/blog', duration: '1:15', status: 'active' },
   { id: 3, location: 'Tokyo', path: '/pricing → /signup', duration: '5:08', status: 'converting' },
@@ -10,7 +20,7 @@ const liveUsers = [
   { id: 5, location: 'Sydney', path: '/contact', duration: '0:45', status: 'exiting' },
 ];
 
-const statusStyles = {
+const statusStyles: Record<UserStatus, string> = {
   active: 'text-muted-foreground',
   converting: 'text-success',
   exiting: 'text-warning',
