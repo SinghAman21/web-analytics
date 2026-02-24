@@ -26,6 +26,13 @@ const statusStyles: Record<UserStatus, string> = {
   exiting: 'text-warning',
 };
 
+function getStatusStyle(status: string): string {
+  if (status in statusStyles) {
+    return statusStyles[status as UserStatus];
+  }
+  return statusStyles.active;
+}
+
 export default function LiveUsersTable() {
   return (
     <motion.section
@@ -62,7 +69,7 @@ export default function LiveUsersTable() {
             </div>
             <div className="flex items-center gap-6">
               <span className="font-mono text-sm tabular-nums">{user.duration}</span>
-              <span className={`text-xs uppercase tracking-wider ${statusStyles[user.status]}`}>
+              <span className={`text-xs uppercase tracking-wider ${getStatusStyle(user.status)}`}>
                 {user.status}
               </span>
             </div>

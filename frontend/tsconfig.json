@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "noImplicitAny": true,
     "target": "ES2017",
     "lib": [
       "dom",
@@ -7,6 +8,8 @@
       "esnext"
     ],
     "allowJs": true,
+    // "noUnusedParameters": true, good to have in prod
+    // "noUnusedLocals": true, lint tells this as warming so its okay
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,

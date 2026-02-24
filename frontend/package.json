@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "tscheck": "tsc --noEmit",
+    "lint": "eslint",
+    "predeploy": "bun run build && bun run tscheck && bun run lint"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -70,8 +72,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.6",
+    "eslint": "^9.7.0",
+    "eslint-config-next": "^16.1.6",
+    "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "tailwindcss": "^4",

@@ -70,7 +70,7 @@ export interface AnalyticsResponse {
 
 export interface EventLogResponse {
   success: boolean;
-  data: any;
+  data: unknown;
   message: string;
 }
 
