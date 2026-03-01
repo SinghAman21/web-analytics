@@ -2,34 +2,17 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-from contextlib import asynccontextmanager
 import uvicorn
 import os
 
 # from routers import analytics, dashboard, public, tracker
-from core.config import supabase
 from routers.ultrafree import router as ultrafree_router
-
-# Lifespan event handler
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup - test Supabase connection
-    try:
-        # Test connection by querying sites table
-        response = supabase.table("ultrafree").select("id").limit(1).execute()
-        print("✓ Connected to Supabase")
-    except Exception as e:
-        print(f"⚠️  Supabase connection warning: {e}")
-    yield
-    # Shutdown
-    pass
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Web Analytics API",
     description="Analytics API for website tracking and monitoring",
-    version="1.0.0",
-    lifespan=lifespan
+    version="1.0.0"
 )
 
 # Middleware stack
