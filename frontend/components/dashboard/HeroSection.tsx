@@ -49,7 +49,7 @@ export default function HeroSection() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                href="/register"
+                href="/login"
                 className="inline-block bg-foreground text-background px-8 py-3 text-sm font-mono hover:opacity-90 transition-opacity text-center"
               >
                 Start Free →

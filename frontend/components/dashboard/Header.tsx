@@ -8,6 +8,7 @@ const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Pricing', href: '/billing' },
   { label: 'Login', href: '/login' },
+  { label: 'Public', href: '/public' },
 ];
 
 export default function Header() {
@@ -43,7 +44,7 @@ export default function Header() {
 
         <div className="flex items-center gap-4">
           <Link
-            href="/register"
+            href="/login"
             className="bg-foreground text-background px-4 py-2 text-xs font-mono hover:opacity-90 transition-opacity"
           >
             Start Free →

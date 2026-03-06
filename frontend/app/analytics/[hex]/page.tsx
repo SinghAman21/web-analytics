@@ -293,7 +293,7 @@ export default function PublicDashboard() {
               ))}
             </div>
             <div className="mt-8 flex gap-4">
-              <Link href="/register" className="bg-foreground text-background px-6 py-3 text-sm font-mono hover:opacity-90 transition-opacity">
+              <Link href="/login" className="bg-foreground text-background px-6 py-3 text-sm font-mono hover:opacity-90 transition-opacity">
                 Sign Up Free →
               </Link>
               <Link href="/billing" className="px-6 py-3 text-sm font-mono border hover:bg-accent/50 transition-colors">

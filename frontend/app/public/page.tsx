@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { getPublicSites, type PublicSite } from '@/lib/apis/publicSites';
 import { ArrowRight, Plus, BarChart3 } from 'lucide-react';
 import { ModeToggle } from '@/components/toggle';
+import { SpinnerCustom } from "@/components/ui/spinner"
 
 export default function PublicList() {
   const [sites, setSites] = useState<PublicSite[]>([]);
@@ -78,8 +79,12 @@ export default function PublicList() {
             <Plus className="w-4 h-4" />
             New Dashboard
           </Link>
-
-          {sites.length === 0 ? (
+          { loading ? (
+            <div className="border border-border bg-card p-12 flex items-center justify-center">
+              <SpinnerCustom />
+            </div>
+          ) :
+          sites.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -151,7 +156,7 @@ export default function PublicList() {
               <p className="text-sm text-muted-foreground mt-1">Sign up for free to access private dashboards with 90-day retention.</p>
             </div>
             <Link
-              href="/register"
+              href="/login"
               className="bg-foreground text-background px-5 py-3 text-sm font-mono hover:opacity-90 transition-opacity whitespace-nowrap"
             >
               Create Account →
