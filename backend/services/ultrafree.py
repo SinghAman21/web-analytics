@@ -4,6 +4,9 @@ import secrets
 import string
 import hashlib
 from datetime import datetime
+import logging
+
+logger = logging.getLogger(__name__)
 
 def create_ultrafree(
     site_name: str,
@@ -33,6 +36,7 @@ def create_ultrafree(
         raise ValueError("Hex share ID must be 12 characters")
     
     try:
+        logger.info(f"Creating ultrafree site: {site_name}")
         # Insert into ultrafree_sites table
         response = supabase.table("ultrafree").insert({
             "hex_share_id": hex_share_id,
@@ -40,13 +44,14 @@ def create_ultrafree(
             "site_url": site_url.strip(),
         }).execute()
         
+        logger.info(f"Response data: {response.data}")
         if response.data:
             return response.data[0]
         else:
             raise Exception("Failed to create site in Supabase")
     
     except Exception as e:
-        # Re-raise with more context
+        logger.error(f"Error creating ultrafree site: {str(e)}", exc_info=True)
         raise Exception(f"Error creating ultrafree site: {str(e)}")
 
 
@@ -61,13 +66,16 @@ def get_ultrafree(hex_share_id: str) -> Optional[dict]:
         The site record or None if not found
     """
     try:
+        logger.info(f"Fetching ultrafree site: {hex_share_id}")
         response = supabase.table("ultrafree").select(
             "*"
         ).eq("hex_share_id", hex_share_id).execute()
         
+        logger.info(f"Response data: {response.data}")
         return response.data[0] if response.data else None
     
     except Exception as e:
+        logger.error(f"Error retrieving ultrafree site: {str(e)}", exc_info=True)
         raise Exception(f"Error retrieving ultrafree site: {str(e)}")
 
 
@@ -83,6 +91,7 @@ def list_ultrafree(limit: int = 100, offset: int = 0) -> dict:
         Dictionary with sites list and total count
     """
     try:
+        logger.info(f"Listing ultrafree sites: limit={limit}, offset={offset}")
         # Get total count
         count_response = supabase.table("ultrafree").select(
             "id", count="exact"
@@ -95,6 +104,7 @@ def list_ultrafree(limit: int = 100, offset: int = 0) -> dict:
             "*"
         ).order("created_at", desc=True).range(offset, offset + limit - 1).execute()
         
+        logger.info(f"Retrieved {len(response.data) if response.data else 0} sites")
         return {
             "data": response.data if response.data else [],
             "total": total_count,
@@ -103,6 +113,7 @@ def list_ultrafree(limit: int = 100, offset: int = 0) -> dict:
         }
     
     except Exception as e:
+        logger.error(f"Error listing ultrafree sites: {str(e)}", exc_info=True)
         raise Exception(f"Error listing ultrafree sites: {str(e)}")
 
 def log_ultrafreeevent(event_data: dict, ip_address: str) -> dict:
@@ -117,6 +128,7 @@ def log_ultrafreeevent(event_data: dict, ip_address: str) -> dict:
         The inserted event record
     """
     try:
+        logger.info(f"Logging event for site: {event_data.get('site_hex')}")
         # Hash the IP address for privacy
         ip_hash = hashlib.sha256(ip_address.encode()).hexdigest()
         
@@ -133,10 +145,12 @@ def log_ultrafreeevent(event_data: dict, ip_address: str) -> dict:
             "screen_res": event_data.get("screen_res"),
         }).execute()
         
+        logger.info(f"Event logged successfully")
         if response.data:
             return response.data[0]
         else:
             raise Exception("Failed to log event in Supabase")
     
     except Exception as e:
+        logger.error(f"Error logging event: {str(e)}", exc_info=True)
         raise Exception(f"Error logging event: {str(e)}")

@@ -7,6 +7,9 @@ from core.config import supabase
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
 from collections import defaultdict
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_raw_events(site_hex: str, hours: int = 24) -> List[Dict]:
@@ -21,16 +24,25 @@ def get_raw_events(site_hex: str, hours: int = 24) -> List[Dict]:
         List of raw event records
     """
     try:
+        logger.info(f"Fetching raw events for site_hex={site_hex}, hours={hours}")
+        
+        if supabase is None:
+            logger.error("Supabase client is not initialized")
+            return []
+        
         # Calculate timestamp for N hours ago
         cutoff_time = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
+        logger.info(f"Cutoff time: {cutoff_time}")
         
         response = supabase.table("ultrafree_raw_events").select(
             "*"
         ).eq("site_hex", site_hex).gte("event_time", cutoff_time).execute()
         
+        logger.info(f"Retrieved {len(response.data) if response.data else 0} events")
         return response.data if response.data else []
     
     except Exception as e:
+        logger.error(f"Error fetching raw events: {str(e)}", exc_info=True)
         raise Exception(f"Error fetching raw events: {str(e)}")
 
 
@@ -54,9 +66,12 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
         Dictionary with processed analytics data
     """
     try:
+        logger.info(f"Processing analytics for site_hex={site_hex}")
+        
         events = get_raw_events(site_hex, hours)
         
         if not events:
+            logger.info(f"No events found for {site_hex}")
             return {
                 "site_hex": site_hex,
                 "period_hours": hours,

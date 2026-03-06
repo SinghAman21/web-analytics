@@ -120,11 +120,19 @@ async def get_analytics_endpoint(hex_id: str):
         Processed analytics metrics including pageviews, visitors, bounce rate, etc.
     """
     try:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Analytics request for hex_id={hex_id}")
+        
         # Ultrafree analytics always shows last 30 days (720 hours)
         analytics = process_analytics(site_hex=hex_id, hours=720)
+        logger.info(f"Analytics processed successfully")
         return {
             "success": True,
             "data": analytics
         }
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error processing analytics: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
