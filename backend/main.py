@@ -1,18 +1,35 @@
-from fastapi import FastAPI, HTTPException
+import os
+
+import uvicorn
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.gzip import GZipMiddleware
-import uvicorn
-import os
 
-# from routers import analytics, dashboard, public, tracker
+from models.schemas import ErrorResponse, HealthResponse, RootResponse
 from routers.ultrafree import router as ultrafree_router
+
+TAGS_METADATA = [
+    {
+        "name": "System",
+        "description": "Operational endpoints for uptime and API discovery.",
+    },
+    {
+        "name": "Ultrafree",
+        "description": "Public site creation, event ingestion, and analytics endpoints.",
+    },
+    {
+        "name": "public",
+        "description": "Tracker script distribution endpoints for client-side integration.",
+    },
+]
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Web Analytics API",
-    description="Analytics API for website tracking and monitoring",
-    version="1.0.0"
+    description="API for website event tracking, public site setup, and analytics reporting.",
+    version="1.0.0",
+    openapi_tags=TAGS_METADATA,
 )
 
 # Middleware stack
@@ -33,31 +50,37 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# app.include_router(tracker.router, prefix="/public", tags=["tracker"])
-# app.include_router(public.router, prefix="/api/public", tags=["public"])
-# app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
-# app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
+app.include_router(ultrafree_router)
 
 # Health check endpoint
-@app.get("/health")
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["System"],
+    summary="Health check",
+    description="Simple liveness endpoint used by monitors and load balancers.",
+    responses={500: {"model": ErrorResponse, "description": "Unexpected server error"}},
+)
 async def health_check():
     return {
         "status": "ok",
-        "service": "web-analytics-api"
+        "service": "web-analytics-api",
     }
 
 # Root endpoint
-@app.get("/")
+@app.get(
+    "/",
+    response_model=RootResponse,
+    tags=["System"],
+    summary="API root",
+    description="Returns basic service metadata and the Swagger docs path.",
+)
 async def root():
     return {
         "message": "Web Analytics API",
         "version": "1.0.0",
-        "docs": "/docs"
+        "docs": "/docs",
     }
-
-
-# Include the ultrafree router
-app.include_router(ultrafree_router)
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))  # Fallback to 8000 locally

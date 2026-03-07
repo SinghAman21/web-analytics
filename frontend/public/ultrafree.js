@@ -23,7 +23,7 @@
     SESSION_STORAGE_KEY: 'ultrafree_session',
     COOKIE_EXPIRY_DAYS: 365,
     BEACON_INTERVAL: 30000, // 30 seconds
-    IDLE_TIMEOUT: 1800000 // 30 minutes for bounce detection
+    IDLE_TIMEOUT: 600000 // 10 minutes for bounce detection
   };
 
   // State
