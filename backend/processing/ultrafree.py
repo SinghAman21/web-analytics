@@ -79,9 +79,13 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
                 "unique_visitors": 0,
                 "bounce_rate": 0,
                 "sessions": 0,
+                "avg_pages_per_session": 0,
                 "top_pages": [],
                 "device_breakdown": {},
+                "mobile_percentage": 0,
+                "desktop_percentage": 0,
                 "referrers": [],
+                "daily_data": [],
                 "generated_at": datetime.utcnow().isoformat()
             }
         
