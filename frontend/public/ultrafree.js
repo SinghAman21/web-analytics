@@ -34,7 +34,8 @@
     pageStartTime: Date.now(),
     lastActivityTime: Date.now(),
     isActive: true,
-    pageInteracted: false
+    pageInteracted: false,
+    initialized: false
   };
 
   /**
@@ -227,9 +228,14 @@ function detectDeviceType() {
       return;
     }
 
+    if (state.initialized) {
+      return;
+    }
+
     state.siteHex = siteHex;
     state.uniqueCookie = getOrCreateCookie();
     state.sessionId = getOrCreateSessionId();
+    state.initialized = true;
 
     setupActivityListeners();
     setupUnloadHandler();
@@ -254,8 +260,7 @@ function detectDeviceType() {
     }
   };
 
-  // Auto-init if data attribute is present
-  document.addEventListener('DOMContentLoaded', function() {
+  function autoInitFromScriptTag() {
     const scripts = document.querySelectorAll('script[data-site-hex]');
     scripts.forEach(script => {
       const siteHex = script.getAttribute('data-site-hex');
@@ -263,6 +268,13 @@ function detectDeviceType() {
         window.UltrafreeAnalytics.init(siteHex);
       }
     });
-  });
+  }
+
+  // Auto-init if data attribute is present
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoInitFromScriptTag);
+  } else {
+    autoInitFromScriptTag();
+  }
 
 })();
