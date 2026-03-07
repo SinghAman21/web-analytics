@@ -18,7 +18,7 @@
 
   // Configuration
   const CONFIG = {
-    BACKEND_URL: 'https://wa-be.vercel.app/api/ultrafreeevents',
+    BACKEND_URL: 'https://wa-be.vercel.app/api/e',
     COOKIE_NAME: 'ultrafree_cookie',
     SESSION_STORAGE_KEY: 'ultrafree_session',
     COOKIE_EXPIRY_DAYS: 365,
@@ -84,7 +84,9 @@
     const date = new Date();
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
     const expires = 'expires=' + date.toUTCString();
-    document.cookie = name + '=' + value + ';' + expires + ';path=/;SameSite=Lax';
+    // Add Secure flag for HTTPS sites
+    const secure = window.location.protocol === 'https:' ? ';Secure' : '';
+    document.cookie = name + '=' + value + ';' + expires + ';path=/;SameSite=Lax' + secure;
   }
 
   function getCookie(name) {
@@ -162,16 +164,29 @@ function detectDeviceType() {
     // Use Beacon API for reliable delivery
     if (navigator.sendBeacon) {
       const blob = new Blob([payload], { type: 'application/json' });
-      navigator.sendBeacon(CONFIG.BACKEND_URL, blob);
+      const sent = navigator.sendBeacon(CONFIG.BACKEND_URL, blob);
+      if (!sent) {
+        // Fallback if beacon queue is full
+        sendFetch(payload);
+      }
     } else {
-      // Fallback to fetch (but may not complete on page unload)
-      fetch(CONFIG.BACKEND_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: payload,
-        keepalive: true
-      }).catch(err => console.error('Analytics send failed:', err));
+      sendFetch(payload);
     }
+  }
+
+  /**
+   * Fallback fetch method
+   */
+  function sendFetch(payload) {
+    fetch(CONFIG.BACKEND_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: payload,
+      keepalive: true
+    }).catch(function(err) {
+      // Silently fail - ad blocker likely blocked it
+      console.debug('Event send failed (may be blocked):', err.message);
+    });
   }
 
   /**
@@ -278,3 +293,8 @@ function detectDeviceType() {
   }
 
 })();
+
+// document.cookie.includes('ultrafree_cookie=')
+// sessionStorage.getItem('ultrafree_session') 
+// window.UltrafreeAnalytics 
+// Network tab: confirm POSTs to /api/ultrafreeevents with unique_cookie and session_id

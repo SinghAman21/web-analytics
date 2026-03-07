@@ -149,7 +149,7 @@ export async function getAnalytics(hexId: string): Promise<AnalyticsData> {
  */
 export async function logEvent(event: EventData): Promise<EventLogResponse> {
   try {
-    const response = await fetch(`${API_URL}/api/ultrafreeevents`, {
+    const response = await fetch(`${API_URL}/api/e`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

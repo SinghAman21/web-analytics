@@ -44,7 +44,9 @@ app.add_middleware(
         "http://localhost:3000",
         "http://localhost:3001",
         "https://pulsev0.vercel.app",
-        # "https://*.netlify.app"
+        "https://*.vercel.app",
+        "https://*.netlify.app"
+        "https://*"
     ],
     allow_credentials=True,
     allow_methods=["*"],
