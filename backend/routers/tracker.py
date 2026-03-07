@@ -137,7 +137,6 @@ async def get_tracker_script(site_hex: str = Query(...)):
       session_id: state.sessionId,
       page_path: getPagePath(),
       device_type: detectDeviceType(),
-      is_bounce: isBounce(),
       referrer: getReferrer(),
       screen_res: getScreenResolution()
     }};

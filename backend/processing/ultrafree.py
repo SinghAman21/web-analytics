@@ -248,7 +248,12 @@ def get_analytics_by_period(site_hex: str, start_date: str, end_date: str) -> Di
         unique_visitors = len(set(e.get("unique_cookie") for e in events))
         sessions = len(set(e.get("session_id") for e in events))
         
-        bounced = len([e for e in events if e.get("is_bounce") is True])
+        # Calculate bounce rate: sessions with exactly 1 pageview / total sessions
+        session_pageviews = {}
+        for event in events:
+            session_id = event.get("session_id")
+            session_pageviews[session_id] = session_pageviews.get(session_id, 0) + 1
+        bounced = len([s for s, count in session_pageviews.items() if count == 1])
         bounce_rate = round((bounced / sessions * 100), 2) if sessions > 0 else 0
         
         pages = defaultdict(int)

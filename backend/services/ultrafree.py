@@ -139,7 +139,6 @@ def log_ultrafreeevent(event_data: dict, ip_address: str) -> dict:
             "session_id": event_data["session_id"],
             "page_path": event_data["page_path"],
             "device_type": event_data["device_type"],
-            "is_bounce": event_data["is_bounce"],
             "referrer": event_data.get("referrer"),
             "ip_hash": ip_hash,
             "screen_res": event_data.get("screen_res"),

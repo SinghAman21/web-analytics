@@ -12,6 +12,7 @@ import {
   type AnalyticsData, 
   type SiteInfo 
 } from '@/lib/apis/ultrafreeanalytics';
+import { SpinnerCustom } from '@/components/ui/spinner';
 
 const lockedFeatures = [
   { label: 'Page Performance', tier: 'Signed-In' },
@@ -83,7 +84,8 @@ export default function PublicDashboard() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex items-center gap-3">
-          <RefreshCw className="w-5 h-5 animate-spin" />
+          {/* <RefreshCw className="w-5 h-5 animate-spin" /> */}
+          <SpinnerCustom/>
           <span className="font-mono text-sm">Loading analytics...</span>
         </div>
       </div>
@@ -121,7 +123,9 @@ export default function PublicDashboard() {
               onClick={fetchData}
               className="flex items-center gap-2 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
             >
-              <RefreshCw className="w-3 h-3" />
+              {/* <RefreshCw className="w-3 h-3" /> */}
+              <SpinnerCustom/>
+
               Refresh
             </button>
             <button 

@@ -12,7 +12,6 @@ export interface EventData {
   session_id: string;
   page_path: string;
   device_type: string;
-  is_bounce: boolean;
   referrer?: string;
   screen_res?: string;
 }

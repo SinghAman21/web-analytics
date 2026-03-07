@@ -38,6 +38,5 @@ class EventData(BaseModel):
     session_id: str
     page_path: str
     device_type: str
-    is_bounce: bool
     referrer: Optional[str] = None
     screen_res: Optional[str] = None

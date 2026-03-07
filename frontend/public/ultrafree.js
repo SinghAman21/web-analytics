@@ -9,7 +9,6 @@
  * - session_id: current session identifier
  * - page_path: current page URL path
  * - device_type: desktop/mobile/tablet
- * - is_bounce: bounce detection flag
  * - referrer: document referrer
  * - screen_res: screen resolution
  */
@@ -146,7 +145,6 @@ function detectDeviceType() {
       session_id: state.sessionId,
       page_path: getPagePath(),
       device_type: detectDeviceType(),
-      is_bounce: isBounce(),
       referrer: getReferrer(),
       screen_res: getScreenResolution()
       // event_time: handled by server

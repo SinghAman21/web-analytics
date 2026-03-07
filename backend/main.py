@@ -76,7 +76,6 @@ if __name__ == "__main__":
 #     "session_id": "session-uuid",
 #     "page_path": "/home",
 #     "device_type": "desktop",
-#     "is_bounce": false,
 #     "referrer": "google.com",
 #     "screen_res": "1920x1080"
 #   }'
