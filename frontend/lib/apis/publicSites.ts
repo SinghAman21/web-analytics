@@ -36,7 +36,7 @@ export async function getPublicSites(): Promise<PublicSite[]> {
     });
 
     if (!response.ok) {
-      console.error('Failed to fetch sites');
+      console.error('Failed to fetch sites:', response.status, response.statusText);
       return [];
     }
 
@@ -71,8 +71,14 @@ export async function createPublicSite(
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to create site');
+      let errorMessage = 'Failed to create site';
+      try {
+        const error = await response.json();
+        errorMessage = error.detail || errorMessage;
+      } catch (e) {
+        errorMessage = `${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();

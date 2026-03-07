@@ -18,7 +18,7 @@
 
   // Configuration
   const CONFIG = {
-    BACKEND_URL: '/api/ultrafreeevents',
+    BACKEND_URL: 'https://wa-be.vercel.app/api/ultrafreeevents',
     COOKIE_NAME: 'ultrafree_cookie',
     SESSION_STORAGE_KEY: 'ultrafree_session',
     COOKIE_EXPIRY_DAYS: 365,

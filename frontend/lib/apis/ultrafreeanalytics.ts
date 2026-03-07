@@ -90,8 +90,14 @@ export async function getSiteInfo(hexId: string): Promise<SiteInfo> {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to fetch site info');
+      let errorMessage = 'Failed to fetch site info';
+      try {
+        const error = await response.json();
+        errorMessage = error.detail || errorMessage;
+      } catch (e) {
+        errorMessage = `${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const result = await response.json();
@@ -118,8 +124,14 @@ export async function getAnalytics(hexId: string): Promise<AnalyticsData> {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to fetch analytics');
+      let errorMessage = 'Failed to fetch analytics';
+      try {
+        const error = await response.json();
+        errorMessage = error.detail || errorMessage;
+      } catch (e) {
+        errorMessage = `${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const result: AnalyticsResponse = await response.json();
@@ -146,8 +158,14 @@ export async function logEvent(event: EventData): Promise<EventLogResponse> {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Failed to log event');
+      let errorMessage = 'Failed to log event';
+      try {
+        const error = await response.json();
+        errorMessage = error.detail || errorMessage;
+      } catch (e) {
+        errorMessage = `${response.status} ${response.statusText}`;
+      }
+      throw new Error(errorMessage);
     }
 
     const result: EventLogResponse = await response.json();
