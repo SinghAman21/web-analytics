@@ -26,7 +26,7 @@
     IDLE_TIMEOUT: 600000, // 10 minutes for bounce detection
     // First-party proxy fallback (less likely to be blocked)
     USE_PROXY: true,
-    PROXY_PATH: '/api/collect'
+    PROXY_PATH: 'https://pulsev0.vercel.app/api/collect'
   };
 
   // State
