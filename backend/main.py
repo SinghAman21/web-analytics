@@ -9,6 +9,15 @@ from starlette.middleware.gzip import GZipMiddleware
 from models.schemas import ErrorResponse, HealthResponse, RootResponse
 from routers.ultrafree import router as ultrafree_router
 
+
+def _parse_cors_origins() -> list[str]:
+    """Return explicit CORS origins from env or sane defaults."""
+    raw = os.getenv(
+        "CORS_ALLOW_ORIGINS",
+        "https://useraman.me,https://www.useraman.me,http://localhost:3000",
+    )
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
 TAGS_METADATA = [
     {
         "name": "System",
@@ -40,8 +49,8 @@ app.add_middleware(
 )
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=_parse_cors_origins(),
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
