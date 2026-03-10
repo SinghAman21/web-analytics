@@ -23,7 +23,10 @@
     SESSION_STORAGE_KEY: 'ultrafree_session',
     COOKIE_EXPIRY_DAYS: 365,
     BEACON_INTERVAL: 30000, // 30 seconds
-    IDLE_TIMEOUT: 600000 // 10 minutes for bounce detection
+    IDLE_TIMEOUT: 600000, // 10 minutes for bounce detection
+    // First-party proxy fallback (less likely to be blocked)
+    USE_PROXY: true,
+    PROXY_PATH: '/api/collect'
   };
 
   // State
@@ -156,15 +159,27 @@ function detectDeviceType() {
   }
 
   /**
+   * Get the endpoint URL - prefer first-party proxy if configured
+   */
+  function getEndpointUrl() {
+    if (CONFIG.USE_PROXY && CONFIG.PROXY_PATH) {
+      // Use same-origin proxy path (bypasses ad blockers)
+      return CONFIG.PROXY_PATH;
+    }
+    return CONFIG.BACKEND_URL;
+  }
+
+  /**
    * Send event data using Beacon API (reliable even on page unload)
    */
   function sendBeacon(eventData) {
     const payload = JSON.stringify(eventData);
+    const url = getEndpointUrl();
     
     // Use Beacon API for reliable delivery
     if (navigator.sendBeacon) {
       const blob = new Blob([payload], { type: 'application/json' });
-      const sent = navigator.sendBeacon(CONFIG.BACKEND_URL, blob);
+      const sent = navigator.sendBeacon(url, blob);
       if (!sent) {
         // Fallback if beacon queue is full
         sendFetch(payload);
@@ -178,7 +193,8 @@ function detectDeviceType() {
    * Fallback fetch method
    */
   function sendFetch(payload) {
-    fetch(CONFIG.BACKEND_URL, {
+    const url = getEndpointUrl();
+    fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payload,
