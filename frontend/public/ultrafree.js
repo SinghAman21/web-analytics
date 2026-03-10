@@ -168,35 +168,21 @@ function detectDeviceType() {
   }
 
   /**
-   * Send event data using Beacon API (reliable even on page unload)
+   * Send event data using fetch with keepalive (avoids beacon blocking)
+   * keepalive: true ensures request completes even on page unload
    */
-  function sendBeacon(eventData) {
+  function sendEvent(eventData) {
     const payload = JSON.stringify(eventData);
     const url = getEndpointUrl();
     
-    // Use Beacon API for reliable delivery
-    if (navigator.sendBeacon) {
-      const blob = new Blob([payload], { type: 'application/json' });
-      const sent = navigator.sendBeacon(url, blob);
-      if (!sent) {
-        // Fallback if beacon queue is full
-        sendFetch(payload);
-      }
-    } else {
-      sendFetch(payload);
-    }
-  }
-
-  /**
-   * Fallback fetch method
-   */
-  function sendFetch(payload) {
-    const url = getEndpointUrl();
+    // Use fetch with keepalive - more reliable than sendBeacon with ad blockers
     fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payload,
-      keepalive: true
+      keepalive: true,
+      mode: 'cors',
+      credentials: 'omit'  // Don't send cookies - not needed and avoids CORS issues
     }).catch(function(err) {
       // Silently fail - ad blocker likely blocked it
       console.debug('Event send failed (may be blocked):', err.message);
@@ -208,7 +194,7 @@ function detectDeviceType() {
    */
   function trackPageView() {
     const eventData = collectEventData();
-    sendBeacon(eventData);
+    sendEvent(eventData);
   }
 
   /**
@@ -285,7 +271,7 @@ function detectDeviceType() {
     trackEvent: function(customData) {
       const eventData = collectEventData();
       Object.assign(eventData, customData);
-      sendBeacon(eventData);
+      sendEvent(eventData);
     }
   };
 
