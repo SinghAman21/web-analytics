@@ -18,15 +18,13 @@
 
   // Configuration
   const CONFIG = {
-    BACKEND_URL: 'https://wa-be.vercel.app/api/e',
+    BACKEND_URL: 'https://wa-be.vercel.app/api/ping',
     COOKIE_NAME: 'ultrafree_cookie',
     SESSION_STORAGE_KEY: 'ultrafree_session',
     COOKIE_EXPIRY_DAYS: 365,
     BEACON_INTERVAL: 30000, // 30 seconds
     IDLE_TIMEOUT: 600000, // 10 minutes for bounce detection
-    // First-party proxy fallback (less likely to be blocked)
-    USE_PROXY: true,
-    PROXY_PATH: 'https://pulsev0.vercel.app/api/collect'
+    USE_PROXY: false  // Disabled - direct requests work with CORS allow_origins=["*"]
   };
 
   // State

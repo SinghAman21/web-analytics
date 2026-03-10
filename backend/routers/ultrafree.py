@@ -98,7 +98,7 @@ async def list_ultrafree_sites_endpoint(
 
 
 @router.post(
-    "/api/e",
+    "/api/ping",
     response_model=EventLogResponse,
     summary="Ingest analytics event",
     description="Store one frontend tracking event for a public site.",
