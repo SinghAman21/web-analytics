@@ -19,12 +19,16 @@
   // Configuration
   const CONFIG = {
     BACKEND_URL: 'https://wa-be.vercel.app/api/ping',
+    PROXY_PATH: '/api/collect',
     COOKIE_NAME: 'ultrafree_cookie',
     SESSION_STORAGE_KEY: 'ultrafree_session',
+    SESSION_TIMEOUT_MS: 30 * 60 * 1000, // 30 minutes inactivity => new session
     COOKIE_EXPIRY_DAYS: 365,
-    BEACON_INTERVAL: 30000, // 30 seconds
-    IDLE_TIMEOUT: 600000, // 10 minutes for bounce detection
-    USE_PROXY: false  // Disabled - direct requests work with CORS allow_origins=["*"]
+    BEACON_INTERVAL: 120000, // 2 minutes
+    INTERACTION_THROTTLE_MS: 15000,
+    MAX_KEEPALIVE_BYTES: 60 * 1024,
+    IDLE_TIMEOUT: 5 * 60 * 1000, // 5 minutes for bounce detection
+    USE_PROXY: false  // Enable if running first-party proxy at PROXY_PATH
   };
 
   // State
@@ -32,12 +36,27 @@
     siteHex: null,
     uniqueCookie: null,
     sessionId: null,
+    memorySessionId: null,
+    intervalId: null,
     pageStartTime: Date.now(),
     lastActivityTime: Date.now(),
+    lastInteractionSentAt: 0,
+    interactionCount: 0,
     isActive: true,
     pageInteracted: false,
+    scrollEventCount: 0,
+    lastScrollY: typeof window !== 'undefined' ? window.scrollY || 0 : 0,
     initialized: false
   };
+
+  function safeRun(fn, label) {
+    try {
+      return fn();
+    } catch (err) {
+      console.warn('Analytics ' + label + ' failed:', err && err.message ? err.message : err);
+      return null;
+    }
+  }
 
   /**
    * Get or create a unique cookie for the user
@@ -57,14 +76,46 @@
    * Get or create a session ID
    */
   function getOrCreateSessionId() {
-    let sessionId = sessionStorage.getItem(CONFIG.SESSION_STORAGE_KEY);
-    
-    if (!sessionId) {
-      sessionId = generateUUID();
-      sessionStorage.setItem(CONFIG.SESSION_STORAGE_KEY, sessionId);
+    const now = Date.now();
+
+    try {
+      const raw = sessionStorage.getItem(CONFIG.SESSION_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.id && parsed.lastSeen && (now - parsed.lastSeen) < CONFIG.SESSION_TIMEOUT_MS) {
+          parsed.lastSeen = now;
+          sessionStorage.setItem(CONFIG.SESSION_STORAGE_KEY, JSON.stringify(parsed));
+          return parsed.id;
+        }
+      }
+
+      const freshId = generateUUID();
+      sessionStorage.setItem(CONFIG.SESSION_STORAGE_KEY, JSON.stringify({ id: freshId, lastSeen: now }));
+      return freshId;
+    } catch (err) {
+      // Private/incognito modes can throw on sessionStorage access.
+      if (!state.memorySessionId) {
+        state.memorySessionId = generateUUID();
+      }
+      return state.memorySessionId;
     }
-    
-    return sessionId;
+  }
+
+  function touchSession() {
+    const now = Date.now();
+    try {
+      const raw = sessionStorage.getItem(CONFIG.SESSION_STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.id === state.sessionId) {
+        parsed.lastSeen = now;
+        sessionStorage.setItem(CONFIG.SESSION_STORAGE_KEY, JSON.stringify(parsed));
+      }
+    } catch (err) {
+      // no-op (storage unavailable)
+    }
   }
 
   /**
@@ -84,10 +135,19 @@
   function setCookie(name, value, days) {
     const date = new Date();
     date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-    const expires = 'expires=' + date.toUTCString();
-    // Add Secure flag for HTTPS sites
-    const secure = window.location.protocol === 'https:' ? ';Secure' : '';
-    document.cookie = name + '=' + value + ';' + expires + ';path=/;SameSite=Lax' + secure;
+    const attributes = [
+      'expires=' + date.toUTCString(),
+      'path=/'
+    ];
+
+    if (window.location.protocol === 'https:') {
+      attributes.push('SameSite=None');
+      attributes.push('Secure');
+    } else {
+      attributes.push('SameSite=Lax');
+    }
+
+    document.cookie = name + '=' + encodeURIComponent(value) + ';' + attributes.join(';');
   }
 
   function getCookie(name) {
@@ -96,7 +156,7 @@
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i].trim();
       if (cookie.indexOf(nameEQ) === 0) {
-        return cookie.substring(nameEQ.length);
+        return decodeURIComponent(cookie.substring(nameEQ.length));
       }
     }
     return null;
@@ -105,10 +165,20 @@
   /**
    * Detect device type based on user agent and screen size
    */
-function detectDeviceType() {
+  function detectDeviceType() {
     const ua = navigator.userAgent.toLowerCase();
-    return /mobile|android|iphone|phone/i.test(ua) ? 'mobile' : 'desktop';
-}
+    const isIPadOSDesktopUA = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+
+    if (isIPadOSDesktopUA || /ipad|tablet|playbook|silk|(android(?!.*mobile))/i.test(ua)) {
+      return 'tablet';
+    }
+
+    if (/mobile|android|iphone|ipod|phone/i.test(ua)) {
+      return 'mobile';
+    }
+
+    return 'desktop';
+  }
 
   /**
    * Get screen resolution
@@ -128,7 +198,16 @@ function detectDeviceType() {
    * Get document referrer
    */
   function getReferrer() {
-    return document.referrer || '';
+    if (!document.referrer) {
+      return '';
+    }
+
+    try {
+      const url = new URL(document.referrer);
+      return url.origin;
+    } catch (err) {
+      return '';
+    }
   }
 
   /**
@@ -136,23 +215,33 @@ function detectDeviceType() {
    */
   function isBounce() {
     const timeOnPage = Date.now() - state.pageStartTime;
-    return timeOnPage < CONFIG.IDLE_TIMEOUT && !state.pageInteracted;
+    const hasMeaningfulEngagement = state.interactionCount >= 2;
+    return timeOnPage < CONFIG.IDLE_TIMEOUT && !hasMeaningfulEngagement;
   }
 
   /**
    * Collect all event data matching schema
    */
   function collectEventData() {
-    return {
+    return safeRun(function() {
+      touchSession();
+      return {
+        site_hex: state.siteHex,
+        unique_cookie: state.uniqueCookie,
+        session_id: state.sessionId,
+        page_path: getPagePath(),
+        device_type: detectDeviceType(),
+        referrer: getReferrer(),
+        screen_res: getScreenResolution(),
+        is_bounce: isBounce()
+        // event_time: handled by server
+        // ip_hash: handled by server
+      };
+    }, 'collectEventData') || {
       site_hex: state.siteHex,
       unique_cookie: state.uniqueCookie,
       session_id: state.sessionId,
-      page_path: getPagePath(),
-      device_type: detectDeviceType(),
-      referrer: getReferrer(),
-      screen_res: getScreenResolution()
-      // event_time: handled by server
-      // ip_hash: handled by server
+      page_path: '/'
     };
   }
 
@@ -171,20 +260,46 @@ function detectDeviceType() {
    * Send event data using fetch with keepalive (avoids beacon blocking)
    * keepalive: true ensures request completes even on page unload
    */
-  function sendEvent(eventData) {
-    const payload = JSON.stringify(eventData);
+  function getPayloadSize(payload) {
+    if (window.TextEncoder) {
+      return new TextEncoder().encode(payload).length;
+    }
+    return payload.length * 2;
+  }
+
+  function sendEvent(eventData, options) {
+    const opts = options || {};
+    let payload = safeRun(function() {
+      return JSON.stringify(eventData);
+    }, 'stringifyPayload');
+
+    if (!payload) {
+      return;
+    }
+
+    if (getPayloadSize(payload) > CONFIG.MAX_KEEPALIVE_BYTES) {
+      // keepalive/sendBeacon are size-constrained, fallback to compact payload
+      payload = JSON.stringify(collectEventData());
+    }
+
     const url = getEndpointUrl();
-    
-    // Use fetch with keepalive - more reliable than sendBeacon with ad blockers
+
+    if (opts.preferBeacon && navigator.sendBeacon) {
+      const blob = new Blob([payload], { type: 'application/json' });
+      const beaconSent = navigator.sendBeacon(url, blob);
+      if (beaconSent) {
+        return;
+      }
+    }
+
     fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: payload,
-      keepalive: true,
+      keepalive: !!opts.keepalive,
       mode: 'cors',
       credentials: 'omit'  // Don't send cookies - not needed and avoids CORS issues
     }).catch(function(err) {
-      // Silently fail - ad blocker likely blocked it
       console.debug('Event send failed (may be blocked):', err.message);
     });
   }
@@ -192,9 +307,12 @@ function detectDeviceType() {
   /**
    * Track page view
    */
-  function trackPageView() {
-    const eventData = collectEventData();
-    sendEvent(eventData);
+  function trackPageView(meta) {
+    safeRun(function() {
+      const eventData = collectEventData();
+      Object.assign(eventData, meta || {});
+      sendEvent(eventData, { keepalive: false });
+    }, 'trackPageView');
   }
 
   /**
@@ -202,34 +320,66 @@ function detectDeviceType() {
    */
   function setupActivityListeners() {
     const activityEvents = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
-    
-    activityEvents.forEach(event => {
-      document.addEventListener(event, function() {
+
+    activityEvents.forEach(function(eventName) {
+      document.addEventListener(eventName, function() {
+        const now = Date.now();
+        state.lastActivityTime = now;
+
+        if (eventName === 'scroll') {
+          state.scrollEventCount += 1;
+          const currentY = window.scrollY || 0;
+          const delta = Math.abs(currentY - state.lastScrollY);
+          state.lastScrollY = currentY;
+
+          // Ignore tiny/accidental scroll touches for bounce purposes.
+          if (state.scrollEventCount < 2 || delta < 120) {
+            return;
+          }
+        }
+
         state.pageInteracted = true;
-        state.lastActivityTime = Date.now();
-      }, { once: true }); // Only needs to fire once
+        state.interactionCount += 1;
+
+        if (now - state.lastInteractionSentAt >= CONFIG.INTERACTION_THROTTLE_MS) {
+          state.lastInteractionSentAt = now;
+          trackPageView({ event_type: 'interaction', interaction_type: eventName });
+        }
+      }, { passive: true });
     });
   }
 
   /**
    * Setup periodic beacon sending
    */
-  function setupPeriodicBeacon() {
-    setInterval(function() {
-      trackPageView();
-    }, CONFIG.BEACON_INTERVAL);
-  }
+  // function setupPeriodicBeacon() {
+  //   state.intervalId = setInterval(function() {
+  //     if (document.visibilityState === 'visible') {
+  //       trackPageView({ event_type: 'heartbeat' });
+  //     }
+  //   }, CONFIG.BEACON_INTERVAL);
+  // }
 
   /**
    * Setup unload handler to send data before page leaves
    */
   function setupUnloadHandler() {
-    window.addEventListener('beforeunload', function() {
-      trackPageView();
+    window.addEventListener('pagehide', function(event) {
+      if (event.persisted) {
+        return;
+      }
+      const eventData = collectEventData();
+      eventData.event_type = 'page_exit';
+      sendEvent(eventData, { preferBeacon: true, keepalive: true });
     });
 
-    window.addEventListener('pagehide', function() {
-      trackPageView();
+    document.addEventListener('visibilitychange', function() {
+      state.isActive = document.visibilityState === 'visible';
+      if (document.visibilityState === 'hidden') {
+        const eventData = collectEventData();
+        eventData.event_type = 'page_hidden';
+        sendEvent(eventData, { preferBeacon: true, keepalive: true });
+      }
     });
   }
 
@@ -254,10 +404,10 @@ function detectDeviceType() {
 
     setupActivityListeners();
     setupUnloadHandler();
-    setupPeriodicBeacon();
+    // setupPeriodicBeacon();
 
     // Initial page view
-    trackPageView();
+    trackPageView({ event_type: 'page_load' });
 
     console.log('Analytics tracker initialized for site:', siteHex);
   }
@@ -267,11 +417,15 @@ function detectDeviceType() {
    */
   window.UltrafreeAnalytics = {
     init: init,
-    trackPageView: trackPageView,
+    trackPageView: function() {
+      trackPageView({ event_type: 'manual_page_view' });
+    },
     trackEvent: function(customData) {
-      const eventData = collectEventData();
-      Object.assign(eventData, customData);
-      sendEvent(eventData);
+      safeRun(function() {
+        const eventData = collectEventData();
+        Object.assign(eventData, customData || {});
+        sendEvent(eventData, { keepalive: false });
+      }, 'trackEvent');
     }
   };
 
