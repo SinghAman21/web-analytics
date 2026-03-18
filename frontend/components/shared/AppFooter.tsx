@@ -42,6 +42,11 @@ export default function AppFooter() {
                   Dashboard
                 </Link>
               </li>
+              <li>
+                <Link href="/how-to-do" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  How to do
+                </Link>
+              </li>
             </ul>
           </div>
 

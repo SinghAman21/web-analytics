@@ -6,6 +6,7 @@ import { ModeToggle } from '../toggle';
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
+  { label: 'How to do', href: '/how-to-do' },
   { label: 'Pricing', href: '/billing' },
   { label: 'Login', href: '/login' },
   { label: 'Public', href: '/public' },
