@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowUpRight, Plus } from 'lucide-react';
+import { useClerk } from '@clerk/nextjs';
 import AppFooter from '@/components/shared/AppFooter';
 import { ModeToggle } from '@/components/toggle';
 
@@ -20,6 +21,7 @@ const currentTier = {
 };
 
 export default function DashboardOverview() {
+  const { signOut } = useClerk();
   const totalPageviews = sites.reduce((sum, s) => sum + s.routeViews.reduce((a, b) => a + b, 0), 0);
 
   return (
@@ -44,6 +46,16 @@ export default function DashboardOverview() {
             <span className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground">{currentTier.name.toUpperCase()}</span>
             <Link href="/account" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Account</Link>
             <Link href="/billing" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Billing</Link>
+            <button
+              type="button"
+              onClick={async () => {
+                await signOut({ redirectUrl: '/' });
+              }}
+              // className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+              className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground hover:border-destructive hover:text-destructive transition-colors cursor-pointer"
+            >
+              Logout
+            </button>
             <ModeToggle />
           </div>
         </div>

@@ -7,6 +7,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 
 from models.schemas import ErrorResponse, HealthResponse, RootResponse
+from routers.free import router as auth_router
 from routers.ultrafree import router as ultrafree_router
 
 TAGS_METADATA = [
@@ -17,6 +18,10 @@ TAGS_METADATA = [
     {
         "name": "Ultrafree",
         "description": "Public site creation, event ingestion, and analytics endpoints.",
+    },
+    {
+        "name": "Auth",
+        "description": "Authenticated endpoints backed by Clerk session tokens.",
     },
     {
         "name": "public",
@@ -46,6 +51,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(ultrafree_router)
+app.include_router(auth_router)
 
 # Health check endpoint
 @app.get(

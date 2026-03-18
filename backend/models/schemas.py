@@ -123,3 +123,25 @@ class AnalyticsData(BaseModel):
 class AnalyticsResponse(BaseModel):
     success: bool
     data: AnalyticsData
+
+
+class SignedInUser(BaseModel):
+    """Normalized signed-in user shape derived from Clerk token claims."""
+
+    clerk_user_id: str = Field(..., description="Clerk user identifier (sub claim)")
+    session_id: Optional[str] = Field(None, description="Clerk session id (sid claim)")
+    email: Optional[str] = Field(None, description="Primary email, if included in token claims")
+    first_name: Optional[str] = Field(None, description="User first name")
+    last_name: Optional[str] = Field(None, description="User last name")
+    username: Optional[str] = Field(None, description="Clerk username, if present")
+    image_url: Optional[str] = Field(None, description="Profile image URL")
+    role: Optional[str] = Field(None, description="Organization role, if present")
+    claims: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Subset of raw Clerk JWT claims for downstream authorization",
+    )
+
+
+class SignedInUserResponse(BaseModel):
+    authenticated: bool
+    data: SignedInUser

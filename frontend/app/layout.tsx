@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 // import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/components/theme-provider";
+import BackendAuthSync from "@/components/auth/BackendAuthSync";
 import { Toaster } from "sonner";
 import { ClerkProvider } from '@clerk/nextjs'
 
@@ -33,6 +34,7 @@ export default function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
             <ClerkProvider>
+            <BackendAuthSync />
             {children}
           </ClerkProvider>
           <Toaster />
