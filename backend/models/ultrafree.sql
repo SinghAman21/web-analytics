@@ -1,3 +1,4 @@
+-- first time setup for ultrafree model
 -- 1. Create sites table (unchanged)
 CREATE TABLE ultrafree (
   id SERIAL PRIMARY KEY,
@@ -31,3 +32,7 @@ FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
 ALTER TABLE ultrafree_raw_events 
 ADD CONSTRAINT fk_ultrafree_raw_events_site_hex 
 FOREIGN KEY (site_hex) REFERENCES ultrafree(hex_share_id);
+
+-- use cron job for this task
+CREATE TABLE ultrafree_raw_events_2026_04 PARTITION OF ultrafree_raw_events
+FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
