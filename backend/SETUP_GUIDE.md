@@ -1,6 +1,6 @@
-# Setup Guide: Linking Backend with Supabase & Clerk
+# Setup Guide: Session-Based Authentication with Supabase
 
-This guide walks through integrating your FastAPI backend with **Supabase** (database) and **Clerk** (authentication).
+This guide walks through integrating your FastAPI backend with **Supabase** (database) using **session-based authentication**.
 
 ---
 
@@ -8,12 +8,11 @@ This guide walks through integrating your FastAPI backend with **Supabase** (dat
 
 1. [Prerequisites](#prerequisites)
 2. [Supabase Setup](#supabase-setup)
-3. [Clerk Setup](#clerk-setup)
-4. [Backend Environment Configuration](#backend-environment-configuration)
-5. [Database Migration](#database-migration)
+3. [Backend Environment Configuration](#backend-environment-configuration)
+4. [Database Migration](#database-migration)
+5. [Authentication Endpoints](#authentication-endpoints)
 6. [Testing the Integration](#testing-the-integration)
-7. [Frontend Integration](#frontend-integration)
-8. [Troubleshooting](#troubleshooting)
+7. [Session Management](#session-management)
 
 ---
 
@@ -24,7 +23,6 @@ Before starting, ensure you have:
 - **Python 3.9+** installed
 - **pip** or **uv** for package management
 - A **Supabase account** (https://supabase.com) — sign up free
-- A **Clerk account** (https://clerk.com) — sign up free
 - **curl** or **Postman** for testing APIs
 - Your FastAPI backend running (see main.py)
 
@@ -61,115 +59,40 @@ Before starting, ensure you have:
 Copy and paste this entire block into Supabase SQL Editor:
 
 ```sql
--- 1. Users table (linked to Clerk)
+-- 1. Create users table for session-based authentication
 CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
-  clerk_user_id VARCHAR(255) UNIQUE NOT NULL,
-  email VARCHAR(255),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
   first_name VARCHAR(100),
   last_name VARCHAR(100),
   username VARCHAR(100),
   image_url TEXT,
-  role VARCHAR(50),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   last_signin_at TIMESTAMPTZ
 );
 
--- 2. Create index on clerk_user_id
-CREATE INDEX IF NOT EXISTS idx_users_clerk_user_id ON users(clerk_user_id);
+-- 2. Create indexes on users table
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
--- 3. User sessions table
+-- 3. Create sessions table to track user sessions (15-day expiry)
 CREATE TABLE IF NOT EXISTS user_sessions (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  clerk_session_id VARCHAR(255) UNIQUE,
-  jwt_claims JSONB,
+  session_token VARCHAR(255) UNIQUE NOT NULL,
+  ip_address VARCHAR(45),
+  user_agent TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   last_activity_at TIMESTAMPTZ DEFAULT NOW(),
-  expires_at TIMESTAMPTZ
+  expires_at TIMESTAMPTZ NOT NULL
 );
 
--- 4. Session indexes
+-- 4. Create indexes for session lookups
 CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_user_sessions_clerk_session_id ON user_sessions(clerk_session_id);
-
--- 5. Link ultrafree sites to users (optional)
-ALTER TABLE ultrafree ADD COLUMN IF NOT EXISTS user_id BIGINT REFERENCES users(id) ON DELETE SET NULL;
-CREATE INDEX IF NOT EXISTS idx_ultrafree_user_id ON ultrafree(user_id);
-
--- 6. Enable RLS (Row-Level Security)
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-
--- 7. RLS Policy - users can read their own data
-CREATE POLICY "Users can read their own data"
-  ON users
-  FOR SELECT
-  USING (auth.uid()::text = clerk_user_id);
-```
-
----
-
-## Clerk Setup
-
-### Step 1: Create a Clerk Application
-
-1. Go to [dashboard.clerk.com](https://dashboard.clerk.com) and sign in
-2. Click **Create Application**
-3. Name: `web-analytics`
-4. Choose sign-up methods (e.g., Email, Google, GitHub)
-5. Click **Create application**
-
-### Step 2: Get Clerk API Keys
-
-1. Go to **Settings → API Keys**
-2. Copy:
-   - **Publishable Key** → `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` (frontend)
-   - **Secret Key** → `CLERK_SECRET_KEY` (backend, never expose)
-3. Optionally, find:
-   - **Frontend API URL** → Check under Settings (e.g., `https://yourapp.clerk.accounts.com`)
-
-### Step 3: Configure JWT & JWKS
-
-1. In Clerk dashboard, go to **Settings → JWT Templates**
-2. Click **New template**
-3. Name: `backend-auth`
-4. Choose **Signing algorithm**: `RS256` (default, recommended)
-5. **Custom claims** (optional but recommended):
-   ```json
-   {
-     "email": "{{user.primary_email_address}}",
-     "first_name": "{{user.first_name}}",
-     "last_name": "{{user.last_name}}",
-     "username": "{{user.username}}"
-   }
-   ```
-6. Click **Save**
-
-### Step 4: Get JWKS URL
-
-Clerk automatically provides a JWKS endpoint. You have two options:
-
-**Option A: Use Clerk-hosted JWKS** (recommended)
-
-In Clerk dashboard, navigate to **Settings → API**. Your JWKS URL follows this pattern:
-
-```
-https://<clerk-frontend-api-url>/.well-known/jwks.json
-```
-
-Example:
-```
-https://cute-frog-42.clerk.accounts.com/.well-known/jwks.json
-```
-
-**Option B: Use Issuer-based JWKS**
-
-If you have the Issuer URL, append `/.well-known/jwks.json`:
-
-```
-https://cute-frog-42.clerk.accounts.com/.well-known/jwks.json
+CREATE INDEX IF NOT EXISTS idx_user_sessions_token ON user_sessions(session_token);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_expires_at ON user_sessions(expires_at);
 ```
 
 ---
@@ -185,32 +108,24 @@ cd backend/
 touch .env
 ```
 
-### Step 2: Add Supabase Variables
+### Step 2: Add Environment Variables
 
 ```env
 # Supabase Configuration
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...  # Service Role Secret
 SUPABASE_TIMEOUT_SECONDS=8
+
+# Session Configuration
+# Sessions expire in 15 days by default
+# ENV=production
+ENV=local
+PORT=8000
 ```
 
 Replace `your-project` and the key with your actual values from Supabase dashboard.
 
-### Step 3: Add Clerk Variables
-
-```env
-# Clerk Configuration
-CLERK_SECRET_KEY=sk_test_abc123...  # From Clerk Settings → API Keys
-CLERK_JWKS_URL=https://cute-frog-42.clerk.accounts.com/.well-known/jwks.json
-
-# Optional (if you enforce audience claim)
-CLERK_AUDIENCE=your-app-name
-
-# Or use Issuer instead of JWKS_URL:
-# CLERK_ISSUER=https://cute-frog-42.clerk.accounts.com
-```
-
-### Step 4: Verify Dependencies
+### Step 3: Verify Dependencies
 
 Check that `requirements.txt` includes:
 
@@ -219,32 +134,211 @@ fastapi==0.129.0
 supabase==2.28.0
 pydantic==2.12.5
 python-dotenv==1.2.1
-PyJWT==2.11.0
-```
-
-If missing, add them:
-
-```bash
-pip install pyjwt
-```
-
-### Step 5: Load Environment Variables
-
-Your backend already uses `python-dotenv`. Verify in `core/config.py`:
-
-```python
-from dotenv import load_dotenv
-
-load_dotenv()  # Loads .env file
 ```
 
 ---
 
 ## Database Migration
 
-### Step 1: Create a User on First Sign-In
+### Step 1: Run the SQL Schema
 
-Add this service function in `backend/services/users.py`:
+Execute the SQL schema from **Supabase → SQL Editor** to create the required tables.
+
+### Step 2: Verify Tables
+
+Check **Supabase → Table Editor** to ensure:
+- `users` table exists with email, password_hash, name fields
+- `user_sessions` table exists with session_token and expires_at
+
+---
+
+## Authentication Endpoints
+
+The backend provides the following authentication endpoints:
+
+### 1. Register (POST /api/auth/register)
+
+Create a new user account.
+
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword123",
+  "first_name": "John",
+  "last_name": "Doe"
+}
+```
+
+**Response:**
+```json
+{
+  "authenticated": true,
+  "session_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "created_at": "2026-05-06T10:30:00"
+  }
+}
+```
+
+### 2. Login (POST /api/auth/login)
+
+Authenticate with email and password. Session expires in 15 days.
+
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "password": "securepassword123"
+}
+```
+
+**Response:**
+```json
+{
+  "authenticated": true,
+  "session_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "created_at": "2026-05-06T10:30:00"
+  }
+}
+```
+
+### 3. Get Current User (GET /api/auth/me)
+
+Get the profile of the currently authenticated user.
+
+**Headers:**
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Response:**
+```json
+{
+  "authenticated": true,
+  "data": {
+    "id": 1,
+    "email": "user@example.com",
+    "first_name": "John",
+    "last_name": "Doe",
+    "created_at": "2026-05-06T10:30:00"
+  }
+}
+```
+
+### 4. Logout (POST /api/auth/logout)
+
+Invalidate a session token.
+
+**Request:**
+```json
+{
+  "session_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+---
+
+## Session Management
+
+### Session Expiry
+
+Sessions automatically expire after **15 days** of inactivity. When you:
+
+- **Login**: A new 15-day session is created
+- **Use an authenticated endpoint**: The session expiry resets to 15 days from now
+- **Don't use the session for 15 days**: The session expires and must login again
+
+### Password Security
+
+Passwords are hashed using **PBKDF2** with 100,000 iterations and a 32-byte salt for security.
+
+---
+
+## Testing the Integration
+
+### Test 1: Register a New User
+
+```bash
+curl -X POST http://localhost:8000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "testuser@example.com",
+    "password": "testpass123",
+    "first_name": "Test",
+    "last_name": "User"
+  }'
+```
+
+### Test 2: Login
+
+```bash
+curl -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "testuser@example.com",
+    "password": "testpass123"
+  }'
+```
+
+Save the `session_token` from the response.
+
+### Test 3: Get Current User
+
+```bash
+curl -X GET http://localhost:8000/api/auth/me \
+  -H "Authorization: Bearer <session_token>"
+```
+
+### Test 4: Logout
+
+```bash
+curl -X POST http://localhost:8000/api/auth/logout \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_token": "<session_token>"
+  }'
+```
+
+---
+
+## Troubleshooting
+
+### Issue: "User with this email already exists"
+
+The email is already registered. Try with a different email or use the login endpoint.
+
+### Issue: "Invalid email or password"
+
+Check that the email and password are correct. Note that passwords are case-sensitive.
+
+### Issue: "Invalid or expired session token"
+
+The session has expired (15 days) or the token is invalid. User must login again to get a new token.
+
+### Issue: Database connection error
+
+Verify that:
+1. `SUPABASE_URL` and `SUPABASE_KEY` are correct in `.env`
+2. Supabase tables are created from the SQL schema
+3. The backend can reach Supabase (check network/firewall)
 
 ```python
 from core.config import supabase

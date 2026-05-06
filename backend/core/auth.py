@@ -1,139 +1,227 @@
-import os
-from typing import Any, Dict, Optional
+"""
+Session-based authentication module.
+Sessions expire after 15 days and are reset on each login.
+"""
 
-import jwt
-from fastapi import Depends, HTTPException, status
+import secrets
+import hashlib
+from pathlib import Path
+from typing import Optional
+from datetime import datetime, timedelta, timezone
+
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from dotenv import load_dotenv
 
 from models.schemas import SignedInUser
+from core.config import supabase
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
 
 bearer_scheme = HTTPBearer(auto_error=False)
 
-
-def _normalize_issuer(issuer: Optional[str]) -> Optional[str]:
-	if not issuer:
-		return None
-	return issuer.rstrip("/")
+# Session expiry: 15 days
+SESSION_EXPIRY_DAYS = 15
 
 
-def _resolve_jwks_url() -> str:
-	configured = os.getenv("CLERK_JWKS_URL")
-	if configured:
-		return configured.strip()
-
-	issuer = _normalize_issuer(os.getenv("CLERK_ISSUER"))
-	if issuer:
-		return f"{issuer}/.well-known/jwks.json"
-
-	raise RuntimeError(
-		"Missing Clerk configuration. Set CLERK_JWKS_URL or CLERK_ISSUER in backend environment variables."
-	)
+def _utc_now() -> datetime:
+	"""Return the current UTC time as a timezone-aware datetime."""
+	return datetime.now(timezone.utc)
 
 
-def _resolve_issuer_for_verification() -> Optional[list[str]]:
-	issuer = _normalize_issuer(os.getenv("CLERK_ISSUER"))
-	if not issuer:
-		return None
-	# Clerk issuer can appear with or without trailing slash depending on token template.
-	return [issuer, f"{issuer}/"]
+def hash_password(password: str) -> str:
+	"""Hash a password using PBKDF2."""
+	salt = secrets.token_hex(16)
+	pwd_hash = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 100000)
+	return f"{salt}${pwd_hash.hex()}"
 
 
-def _decode_clerk_token(token: str) -> Dict[str, Any]:
+def verify_password(password: str, password_hash: str) -> bool:
+	"""Verify a password against its hash."""
 	try:
-		jwks_client = jwt.PyJWKClient(_resolve_jwks_url())
-		signing_key = jwks_client.get_signing_key_from_jwt(token).key
-
-		issuer = _resolve_issuer_for_verification()
-		audience = os.getenv("CLERK_AUDIENCE")
-
-		options = {
-			"verify_aud": bool(audience),
-			"verify_iss": bool(issuer),
-		}
-		return jwt.decode(
-			token,
-			signing_key,
-			algorithms=["RS256"],
-			issuer=issuer,
-			audience=audience,
-			options=options,
-		)
-	except RuntimeError:
-		raise
-	except Exception as exc:
-		raise HTTPException(
-			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail="Invalid or expired Clerk token",
-		) from exc
+		salt, pwd_hash = password_hash.split("$")
+		computed_hash = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), 100000)
+		return computed_hash.hex() == pwd_hash
+	except Exception:
+		return False
 
 
-def _extract_email(claims: Dict[str, Any]) -> Optional[str]:
-	if isinstance(claims.get("email"), str):
-		return claims["email"]
-
-	if isinstance(claims.get("email_address"), str):
-		return claims["email_address"]
-
-	email_addresses = claims.get("email_addresses")
-	if isinstance(email_addresses, list) and email_addresses:
-		first = email_addresses[0]
-		if isinstance(first, dict) and isinstance(first.get("email_address"), str):
-			return first["email_address"]
-
-	return None
+def generate_session_token() -> str:
+	"""Generate a secure random session token."""
+	return secrets.token_urlsafe(32)
 
 
-def _extract_name(claims: Dict[str, Any], field: str) -> Optional[str]:
-	if isinstance(claims.get(field), str):
-		return claims[field]
+def create_session(user_id: int, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> str:
+	"""
+	Create a new session token for a user.
+	Expires in 15 days. Resets expiry if user already has sessions.
 
-	if field == "first_name" and isinstance(claims.get("given_name"), str):
-		return claims["given_name"]
+	Args:
+		user_id: The user ID
+		ip_address: Optional IP address for security tracking
+		user_agent: Optional user agent for security tracking
 
-	if field == "last_name" and isinstance(claims.get("family_name"), str):
-		return claims["family_name"]
+	Returns:
+		The session token
 
-	return None
+	Raises:
+		Exception: If session creation fails
+	"""
+	session_token = generate_session_token()
+	expires_at = _utc_now() + timedelta(days=SESSION_EXPIRY_DAYS)
 
+	try:
+		response = supabase.table("user_sessions").insert({
+			"user_id": user_id,
+			"session_token": session_token,
+			"ip_address": ip_address,
+			"user_agent": user_agent,
+			"expires_at": expires_at.isoformat(),
+		}).execute()
 
-def _to_signed_in_user(claims: Dict[str, Any]) -> SignedInUser:
-	clerk_user_id = claims.get("sub")
-	if not isinstance(clerk_user_id, str) or not clerk_user_id:
-		raise HTTPException(
-			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail="Invalid Clerk token payload",
-		)
+		# Update user's last_signin_at
+		supabase.table("users").update({
+			"last_signin_at": _utc_now().isoformat()
+		}).eq("id", user_id).execute()
 
-	claim_subset = {
-		"iss": claims.get("iss"),
-		"aud": claims.get("aud"),
-		"azp": claims.get("azp"),
-		"org_id": claims.get("org_id"),
-		"org_slug": claims.get("org_slug"),
-	}
-
-	return SignedInUser(
-		clerk_user_id=clerk_user_id,
-		session_id=claims.get("sid"),
-		email=_extract_email(claims),
-		first_name=_extract_name(claims, "first_name"),
-		last_name=_extract_name(claims, "last_name"),
-		username=claims.get("username"),
-		image_url=claims.get("image_url"),
-		role=claims.get("org_role"),
-		claims=claim_subset,
-	)
+		return session_token
+	except Exception as e:
+		raise Exception(f"Failed to create session: {str(e)}")
 
 
-def get_current_clerk_user(
+def validate_session(session_token: str) -> Optional[int]:
+	"""
+	Validate a session token and return the user ID.
+	Also updates the last_activity_at timestamp and extends expiry to 15 days.
+
+	Args:
+		session_token: The session token to validate
+
+	Returns:
+		User ID if valid, None if invalid or expired
+
+	Raises:
+		Exception: If session lookup fails
+	"""
+	try:
+		response = supabase.table("user_sessions").select("*").eq(
+			"session_token", session_token
+		).execute()
+
+		if not response.data:
+			return None
+
+		session = response.data[0]
+
+		# Check if session is expired
+		expires_at = datetime.fromisoformat(session["expires_at"].replace("Z", "+00:00"))
+		if expires_at.tzinfo is None:
+			expires_at = expires_at.replace(tzinfo=timezone.utc)
+		if _utc_now() > expires_at:
+			# Session expired, delete it
+			supabase.table("user_sessions").delete().eq("session_token", session_token).execute()
+			return None
+
+		# Reset expiry to 15 days from now and update last activity
+		new_expires_at = _utc_now() + timedelta(days=SESSION_EXPIRY_DAYS)
+		supabase.table("user_sessions").update({
+			"last_activity_at": _utc_now().isoformat(),
+			"expires_at": new_expires_at.isoformat()
+		}).eq("session_token", session_token).execute()
+
+		return session["user_id"]
+
+	except Exception as e:
+		raise Exception(f"Failed to validate session: {str(e)}")
+
+
+def get_current_user(
+	request: Request,
 	credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
 ) -> SignedInUser:
-	"""Validate Clerk bearer token and return normalized signed-in user data."""
-	if not credentials or credentials.scheme.lower() != "bearer":
+	"""
+	Dependency to get the current authenticated user from session token.
+
+	Args:
+		credentials: Bearer token from Authorization header
+
+	Returns:
+		SignedInUser object with user data
+
+	Raises:
+		HTTPException: If authentication fails
+	"""
+	session_token = None
+	if credentials and credentials.scheme.lower() == "bearer":
+		session_token = credentials.credentials
+	else:
+		session_token = request.cookies.get("auth-token")
+
+	if not session_token:
 		raise HTTPException(
 			status_code=status.HTTP_401_UNAUTHORIZED,
-			detail="Missing bearer token",
+			detail="Missing authentication token",
 		)
 
-	claims = _decode_clerk_token(credentials.credentials)
-	return _to_signed_in_user(claims)
+	user_id = validate_session(session_token)
+	if not user_id:
+		raise HTTPException(
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Invalid or expired session token",
+		)
+
+	# Fetch user details
+	try:
+		response = supabase.table("users").select("*").eq("id", user_id).execute()
+
+		if not response.data:
+			raise HTTPException(
+				status_code=status.HTTP_401_UNAUTHORIZED,
+				detail="User not found",
+			)
+
+		user_data = response.data[0]
+		return SignedInUser(
+			id=user_data["id"],
+			email=user_data["email"],
+			first_name=user_data.get("first_name"),
+			last_name=user_data.get("last_name"),
+			username=user_data.get("username"),
+			image_url=user_data.get("image_url"),
+			created_at=user_data.get("created_at"),
+		)
+
+	except HTTPException:
+		raise
+	except Exception as e:
+		raise HTTPException(
+			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+			detail=f"Failed to fetch user: {str(e)}",
+		)
+
+
+def extract_session_token(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = None) -> Optional[str]:
+	"""Read the session token from either a bearer header or the auth cookie."""
+	if credentials and credentials.scheme.lower() == "bearer":
+		return credentials.credentials
+	return request.cookies.get("auth-token")
+
+
+def invalidate_session(session_token: str) -> bool:
+	"""
+	Invalidate a session token (logout).
+
+	Args:
+		session_token: The session token to invalidate
+
+	Returns:
+		True if successful
+
+	Raises:
+		Exception: If session deletion fails
+	"""
+	try:
+		supabase.table("user_sessions").delete().eq("session_token", session_token).execute()
+		return True
+	except Exception as e:
+		raise Exception(f"Failed to invalidate session: {str(e)}")

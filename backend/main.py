@@ -21,7 +21,7 @@ TAGS_METADATA = [
     },
     {
         "name": "Auth",
-        "description": "Authenticated endpoints backed by Clerk session tokens.",
+        "description": "User authentication endpoints for login, registration, and session management. Sessions expire in 15 days.",
     },
     {
         "name": "public",
@@ -43,10 +43,16 @@ app.add_middleware(
     TrustedHostMiddleware, 
     allowed_hosts=["localhost", "127.0.0.1", "*.vercel.app"]
 )
+frontend_origin = os.getenv("FRONTEND_URL", "http://localhost:3000")
+allowed_origins = list({
+	frontend_origin,
+	"http://localhost:3000",
+	"http://127.0.0.1:3000",
+})
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Public analytics API - must accept all origins
-    allow_credentials=False,  # Must be False when using wildcard origins
+    allow_origins=allowed_origins,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )

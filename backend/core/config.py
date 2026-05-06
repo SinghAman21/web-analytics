@@ -1,13 +1,16 @@
 import os
+from pathlib import Path
 from supabase import create_client, Client
 from supabase.lib.client_options import SyncClientOptions
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
 
 # Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID") or os.getenv("client_id")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET") or os.getenv("client_secret")
 
 if not SUPABASE_URL or not SUPABASE_KEY:
     raise ValueError(

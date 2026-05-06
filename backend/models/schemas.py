@@ -126,22 +126,68 @@ class AnalyticsResponse(BaseModel):
 
 
 class SignedInUser(BaseModel):
-    """Normalized signed-in user shape derived from Clerk token claims."""
+    """Authenticated user from session token."""
 
-    clerk_user_id: str = Field(..., description="Clerk user identifier (sub claim)")
-    session_id: Optional[str] = Field(None, description="Clerk session id (sid claim)")
-    email: Optional[str] = Field(None, description="Primary email, if included in token claims")
+    id: int = Field(..., description="User ID")
+    email: str = Field(..., description="User email address")
     first_name: Optional[str] = Field(None, description="User first name")
     last_name: Optional[str] = Field(None, description="User last name")
-    username: Optional[str] = Field(None, description="Clerk username, if present")
+    username: Optional[str] = Field(None, description="Username")
     image_url: Optional[str] = Field(None, description="Profile image URL")
-    role: Optional[str] = Field(None, description="Organization role, if present")
-    claims: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="Subset of raw Clerk JWT claims for downstream authorization",
-    )
+    created_at: Optional[str] = Field(None, description="Account creation timestamp")
 
 
 class SignedInUserResponse(BaseModel):
     authenticated: bool
     data: SignedInUser
+
+
+class LoginRequest(BaseModel):
+    """Login request with email and password."""
+    
+    email: str = Field(..., description="User email")
+    password: str = Field(..., description="User password")
+
+
+class LoginResponse(BaseModel):
+    """Login response with session token."""
+    
+    authenticated: bool
+    session_token: str = Field(..., description="Session token for authenticated requests")
+    user: SignedInUser
+
+
+class RegisterRequest(BaseModel):
+    """Register request for new user."""
+    
+    email: str = Field(..., description="User email")
+    password: str = Field(..., min_length=6, description="User password (min 6 chars)")
+    first_name: Optional[str] = Field(None, description="User first name")
+    last_name: Optional[str] = Field(None, description="User last name")
+
+
+class RegisterResponse(BaseModel):
+    """Register response with session token."""
+    
+    authenticated: bool
+    session_token: str = Field(..., description="Session token for authenticated requests")
+    user: SignedInUser
+
+
+class LogoutRequest(BaseModel):
+    """Logout request."""
+    
+    session_token: str = Field(..., description="Session token to invalidate")
+
+
+class GoogleAuthRequest(BaseModel):
+    """Google OAuth authorization-code exchange request."""
+
+    code: str = Field(..., description="Authorization code returned by Google sign-in")
+
+
+class GoogleAuthResponse(BaseModel):
+    """Google OAuth login response."""
+
+    authenticated: bool
+    user: SignedInUser
