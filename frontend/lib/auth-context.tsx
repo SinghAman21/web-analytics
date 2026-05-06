@@ -1,111 +1,100 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface User {
-  id: string;
+  id: number;
   email: string;
-  name?: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  username?: string | null;
+  image_url?: string | null;
+  created_at?: string | null;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  refreshUser: () => Promise<void>;
+  loginWithGoogleCode: (code: string) => Promise<void>;
   logout: () => Promise<void>;
-  signup: (email: string, password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
-  useEffect(() => {
-    // Check if user is logged in on mount
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const refreshUser = useCallback(async () => {
     try {
-      // Replace with your actual auth check API call
-      const token = document.cookie.split('; ')
-        .find(row => row.startsWith('auth-token='))
-        ?.split('=')[1];
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        method: 'GET',
+        credentials: 'include',
+      });
 
-      if (token) {
-        // Fetch user data
-        // const response = await fetch('/api/auth/me');
-        // const userData = await response.json();
-        // setUser(userData);
-        
-        // Mock user for now
-        setUser({ id: '1', email: 'user@example.com' });
+      if (!response.ok) {
+        setUser(null);
+        return;
       }
+
+      const data = await response.json();
+      setUser(data.data);
     } catch (error) {
       console.error('Auth check failed:', error);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const login = async (email: string, password: string) => {
+  const loginWithGoogleCode = useCallback(async (code: string) => {
     try {
-      // Replace with your actual login API call
-      // const response = await fetch('/api/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      // const data = await response.json();
-      
-      // Mock login
-      document.cookie = `auth-token=mock-token; path=/; max-age=86400`;
-      setUser({ id: '1', email });
-      router.push('/dashboard');
+      const response = await fetch(`${API_URL}/api/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ code }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.detail || 'Google sign in failed');
+      }
+
+      const data = await response.json();
+      setUser(data.user);
+      router.replace('/dashboard');
     } catch (error) {
       console.error('Login failed:', error);
       throw error;
     }
-  };
+  }, [router]);
 
-  const signup = async (email: string, password: string) => {
+  const logout = useCallback(async () => {
     try {
-      // Replace with your actual signup API call
-      // const response = await fetch('/api/auth/signup', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password }),
-      // });
-      
-      // Mock signup
-      document.cookie = `auth-token=mock-token; path=/; max-age=86400`;
-      setUser({ id: '1', email });
-      router.push('/dashboard');
-    } catch (error) {
-      console.error('Signup failed:', error);
-      throw error;
-    }
-  };
-
-  const logout = async () => {
-    try {
-      // Replace with your actual logout API call
-      // await fetch('/api/auth/logout', { method: 'POST' });
-      
-      document.cookie = 'auth-token=; path=/; max-age=0';
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
       setUser(null);
-      router.push('/');
+      router.replace('/');
     } catch (error) {
       console.error('Logout failed:', error);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    void refreshUser();
+  }, [refreshUser]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, signup }}>
+    <AuthContext.Provider value={{ user, isLoading, refreshUser, loginWithGoogleCode, logout }}>
       {children}
     </AuthContext.Provider>
   );

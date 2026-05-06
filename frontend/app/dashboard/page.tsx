@@ -3,9 +3,9 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowUpRight, Plus } from 'lucide-react';
-import { useClerk } from '@clerk/nextjs';
 import AppFooter from '@/components/shared/AppFooter';
 import { ModeToggle } from '@/components/toggle';
+import { useAuth } from '@/lib/auth-context';
 
 const sites = [
   { id: 'mysite-com', domain: 'mysite.com', routes: ['/', '/pricing', '/blog'], routeViews: [523, 312, 198], change: '+12%', status: 'active' },
@@ -21,7 +21,7 @@ const currentTier = {
 };
 
 export default function DashboardOverview() {
-  const { signOut } = useClerk();
+  const { logout } = useAuth();
   const totalPageviews = sites.reduce((sum, s) => sum + s.routeViews.reduce((a, b) => a + b, 0), 0);
 
   return (
@@ -49,7 +49,7 @@ export default function DashboardOverview() {
             <button
               type="button"
               onClick={async () => {
-                await signOut({ redirectUrl: '/' });
+                await logout();
               }}
               // className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
               className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground hover:border-destructive hover:text-destructive transition-colors cursor-pointer"
