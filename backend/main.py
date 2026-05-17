@@ -106,7 +106,6 @@ if __name__ == "__main__":
 #     "session_id": "session-uuid",
 #     "page_path": "/home",
 #     "device_type": "desktop",
-#     "referrer": "google.com",
 #     "screen_res": "1920x1080"
 #   }'
 # uvicorn main:app --host 0.0.0.0 --port 8000 --reload

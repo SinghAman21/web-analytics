@@ -16,7 +16,6 @@ CREATE TABLE ultrafree_raw_events (
   session_id VARCHAR(64) NOT NULL,
   page_path VARCHAR(255) NOT NULL,
   device_type VARCHAR(10) NOT NULL,
-  referrer VARCHAR(512),
   ip_hash VARCHAR(64),
   screen_res VARCHAR(20),
   PRIMARY KEY (id, event_time)

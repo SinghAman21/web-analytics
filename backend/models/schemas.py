@@ -45,7 +45,6 @@ class EventData(BaseModel):
     session_id: str = Field(..., description="Per-tab/session identifier")
     page_path: str = Field(..., description="Current page path", examples=["/pricing"])
     device_type: str = Field(..., description="Device category", examples=["desktop", "mobile", "tablet"])
-    referrer: Optional[str] = Field(None, description="HTTP referrer source")
     screen_res: Optional[str] = Field(None, description="Screen resolution", examples=["1920x1080"])
 
 
@@ -93,11 +92,6 @@ class TopPage(BaseModel):
     views: int
 
 
-class ReferrerStat(BaseModel):
-    source: str
-    count: int
-
-
 class DailyDataPoint(BaseModel):
     date: str
     views: int
@@ -115,7 +109,6 @@ class AnalyticsData(BaseModel):
     device_breakdown: Dict[str, int]
     mobile_percentage: int
     desktop_percentage: int
-    referrers: List[ReferrerStat]
     daily_data: List[DailyDataPoint]
     generated_at: str
 

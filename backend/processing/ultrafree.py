@@ -56,7 +56,6 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
     - Bounce rate
     - Top pages
     - Device breakdown
-    - Referrer sources
     
     Args:
         site_hex: The hex ID of the site
@@ -84,7 +83,6 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
                 "device_breakdown": {},
                 "mobile_percentage": 0,
                 "desktop_percentage": 0,
-                "referrers": [],
                 "daily_data": [],
                 "generated_at": datetime.utcnow().isoformat()
             }
@@ -130,18 +128,6 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
         mobile_percentage = round((mobile_count / total_device_events * 100)) if total_device_events > 0 else 0
         desktop_percentage = round((desktop_count / total_device_events * 100)) if total_device_events > 0 else 0
         
-        # Group by referrer
-        referrers_dict = defaultdict(int)
-        for event in events:
-            referrer = event.get("referrer") or "direct"
-            referrers_dict[referrer] += 1
-        
-        referrers = sorted(
-            [{"source": ref, "count": count} for ref, count in referrers_dict.items()],
-            key=lambda x: x["count"],
-            reverse=True
-        )[:10]
-        
         # Group by date for daily chart
         daily_views = defaultdict(int)
         for event in events:
@@ -185,7 +171,6 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
             "device_breakdown": device_breakdown,
             "mobile_percentage": mobile_percentage,
             "desktop_percentage": desktop_percentage,
-            "referrers": referrers,
             "daily_data": daily_data,
             "generated_at": datetime.utcnow().isoformat()
         }

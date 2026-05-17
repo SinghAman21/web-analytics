@@ -12,7 +12,6 @@ export interface EventData {
   session_id: string;
   page_path: string;
   device_type: string;
-  referrer?: string;
   screen_res?: string;
 }
 
@@ -27,11 +26,6 @@ export interface SiteInfo {
 export interface TopPage {
   path: string;
   views: number;
-}
-
-export interface Referrer {
-  source: string;
-  count: number;
 }
 
 export interface DailyData {
@@ -57,7 +51,6 @@ export interface AnalyticsData {
   device_breakdown: DeviceBreakdown;
   mobile_percentage: number;
   desktop_percentage: number;
-  referrers: Referrer[];
   daily_data: DailyData[];
   generated_at: string;
 }
