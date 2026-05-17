@@ -9,7 +9,26 @@
  * - session_id: current session identifier
  * - page_path: current page URL path
  * - device_type: desktop/mobile/tablet
+ * - referrer: full referrer URL with query parameters
  * - screen_res: screen resolution
+ * - browser: browser name (Chrome, Firefox, Safari, Edge, Opera, etc)
+ * - browser_version: browser version number
+ * - os: operating system (Windows, macOS, Linux, Android, iOS)
+ * - os_version: OS version number
+ * - utm_source: UTM source parameter
+ * - utm_medium: UTM medium parameter
+ * - utm_campaign: UTM campaign parameter
+ * - utm_content: UTM content parameter
+ * - utm_term: UTM term parameter
+ * - page_load_time: total page load time in milliseconds
+ * - dom_interactive_time: DOM interactive time in milliseconds
+ * - first_paint_time: first paint time in milliseconds
+ * - first_contentful_paint_time: first contentful paint time in milliseconds
+ * - country: country name (from geolocation)
+ * - country_code: ISO country code
+ * - city: city name (from geolocation)
+ * - timezone: timezone name
+ * - is_bounce: whether user bounced (no meaningful engagement)
  */
 
 (function() {
@@ -45,7 +64,10 @@
     pageInteracted: false,
     scrollEventCount: 0,
     lastScrollY: typeof window !== 'undefined' ? window.scrollY || 0 : 0,
-    initialized: false
+    initialized: false,
+    geoData: null,
+    geoFetched: false,
+    performanceData: null
   };
 
   function safeRun(fn, label) {
@@ -194,6 +216,213 @@
   }
 
   /**
+   * Get full referrer URL with query parameters
+   */
+  function getReferrer() {
+    if (!document.referrer) {
+      return '';
+    }
+
+    try {
+      // Return full URL including path and query string
+      return document.referrer;
+    } catch (err) {
+      return '';
+    }
+  }
+
+  /**
+   * Extract UTM parameters from current URL
+   */
+  function extractUTMParameters() {
+    const utm = {
+      utm_source: null,
+      utm_medium: null,
+      utm_campaign: null,
+      utm_content: null,
+      utm_term: null
+    };
+
+    try {
+      const params = new URLSearchParams(window.location.search);
+      Object.keys(utm).forEach(key => {
+        const value = params.get(key);
+        if (value) {
+          utm[key] = value;
+        }
+      });
+    } catch (err) {
+      // URL parsing failed, return empty UTM params
+    }
+
+    return utm;
+  }
+
+  /**
+   * Parse user agent to detect browser and OS
+   */
+  function getBrowserAndOS() {
+    const ua = navigator.userAgent;
+    const browserOS = {
+      browser: 'unknown',
+      browser_version: 'unknown',
+      os: 'unknown',
+      os_version: 'unknown'
+    };
+
+    try {
+      // Detect OS
+      if (/windows/i.test(ua)) {
+        browserOS.os = 'Windows';
+        const winMatch = ua.match(/windows nt ([\d.]+)/i);
+        if (winMatch) {
+          const version = winMatch[1];
+          browserOS.os_version = version;
+          if (version === '10.0') browserOS.os = 'Windows 10/11';
+          else if (version === '6.3') browserOS.os = 'Windows 8.1';
+          else if (version === '6.2') browserOS.os = 'Windows 8';
+          else if (version === '6.1') browserOS.os = 'Windows 7';
+        }
+      } else if (/macintosh/i.test(ua)) {
+        browserOS.os = 'macOS';
+        const macMatch = ua.match(/os x ([\d._]+)/i);
+        if (macMatch) {
+          browserOS.os_version = macMatch[1].replace(/_/g, '.');
+        }
+      } else if (/linux/i.test(ua) && !/android/i.test(ua)) {
+        browserOS.os = 'Linux';
+        const linuxMatch = ua.match(/linux ([\w]+)/i);
+        if (linuxMatch) {
+          browserOS.os_version = linuxMatch[1];
+        }
+      } else if (/android/i.test(ua)) {
+        browserOS.os = 'Android';
+        const androidMatch = ua.match(/android ([\d.]+)/i);
+        if (androidMatch) {
+          browserOS.os_version = androidMatch[1];
+        }
+      } else if (/iphone|ipad|ipod/i.test(ua)) {
+        browserOS.os = 'iOS';
+        const iosMatch = ua.match(/os ([\d_]+)/i);
+        if (iosMatch) {
+          browserOS.os_version = iosMatch[1].replace(/_/g, '.');
+        }
+      }
+
+      // Detect Browser
+      if (/edg/i.test(ua)) {
+        browserOS.browser = 'Edge';
+        const edgeMatch = ua.match(/edg.([\d.]+)/i);
+        if (edgeMatch) browserOS.browser_version = edgeMatch[1];
+      } else if (/chrome/i.test(ua) && !/chromium/i.test(ua)) {
+        browserOS.browser = 'Chrome';
+        const chromeMatch = ua.match(/chrome\/([\d.]+)/i);
+        if (chromeMatch) browserOS.browser_version = chromeMatch[1];
+      } else if (/safari/i.test(ua)) {
+        browserOS.browser = 'Safari';
+        const safariMatch = ua.match(/version\/([\d.]+)/i);
+        if (safariMatch) browserOS.browser_version = safariMatch[1];
+      } else if (/firefox/i.test(ua)) {
+        browserOS.browser = 'Firefox';
+        const firefoxMatch = ua.match(/firefox\/([\d.]+)/i);
+        if (firefoxMatch) browserOS.browser_version = firefoxMatch[1];
+      } else if (/opera|opr/i.test(ua)) {
+        browserOS.browser = 'Opera';
+        const operaMatch = ua.match(/(?:opera|opr|opios)\/([\d.]+)/i);
+        if (operaMatch) browserOS.browser_version = operaMatch[1];
+      }
+    } catch (err) {
+      // If parsing fails, return defaults
+    }
+
+    return browserOS;
+  }
+
+  /**
+   * Get page performance metrics using Performance API
+   */
+  function getPagePerformance() {
+    const perfData = {
+      page_load_time: null,
+      dom_interactive_time: null,
+      first_paint_time: null,
+      first_contentful_paint_time: null
+    };
+
+    try {
+      if (!window.performance || !window.performance.timing) {
+        return perfData;
+      }
+
+      const timing = window.performance.timing;
+      const navigation = window.performance.navigation;
+      
+      // Total page load time
+      if (timing.loadEventEnd && timing.navigationStart) {
+        perfData.page_load_time = Math.round(timing.loadEventEnd - timing.navigationStart);
+      }
+
+      // DOM Interactive time
+      if (timing.domInteractive && timing.navigationStart) {
+        perfData.dom_interactive_time = Math.round(timing.domInteractive - timing.navigationStart);
+      }
+
+      // First Paint and First Contentful Paint (newer API)
+      if (window.performance.getEntriesByType) {
+        const paintEntries = window.performance.getEntriesByType('paint');
+        paintEntries.forEach(entry => {
+          if (entry.name === 'first-paint') {
+            perfData.first_paint_time = Math.round(entry.startTime);
+          } else if (entry.name === 'first-contentful-paint') {
+            perfData.first_contentful_paint_time = Math.round(entry.startTime);
+          }
+        });
+      }
+    } catch (err) {
+      // Performance API not available
+    }
+
+    return perfData;
+  }
+
+  /**
+   * Fetch geolocation data from IP
+   * Using free ipapi.co service (no API key required)
+   */
+  function fetchGeoData() {
+    if (state.geoFetched || state.geoData) {
+      return;
+    }
+
+    state.geoFetched = true;
+
+    safeRun(function() {
+      fetch('https://ipapi.co/json/', {
+        mode: 'cors',
+        credentials: 'omit',
+        timeout: 5000
+      })
+      .then(response => response.json())
+      .then(data => {
+        state.geoData = {
+          country: data.country_name || null,
+          country_code: data.country_code || null,
+          city: data.city || null,
+          region: data.region || null,
+          latitude: data.latitude || null,
+          longitude: data.longitude || null,
+          timezone: data.timezone || null,
+          isp: data.org || null
+        };
+      })
+      .catch(err => {
+        // Geo fetch failed, will use null values
+        state.geoData = null;
+      });
+    }, 'fetchGeoData');
+  }
+
+  /**
    * Detect if user is bouncing (no interaction after idle timeout)
    */
   function isBounce() {
@@ -208,17 +437,41 @@
   function collectEventData() {
     return safeRun(function() {
       touchSession();
-      return {
+      const browserOS = getBrowserAndOS();
+      const utmParams = extractUTMParameters();
+      const perfData = getPagePerformance();
+
+      const eventData = {
         site_hex: state.siteHex,
         unique_cookie: state.uniqueCookie,
         session_id: state.sessionId,
         page_path: getPagePath(),
         device_type: detectDeviceType(),
+        referrer: getReferrer(),
         screen_res: getScreenResolution(),
-        is_bounce: isBounce()
+        is_bounce: isBounce(),
+        browser: browserOS.browser,
+        browser_version: browserOS.browser_version,
+        os: browserOS.os,
+        os_version: browserOS.os_version,
+        utm_source: utmParams.utm_source,
+        utm_medium: utmParams.utm_medium,
+        utm_campaign: utmParams.utm_campaign,
+        utm_content: utmParams.utm_content,
+        utm_term: utmParams.utm_term,
+        page_load_time: perfData.page_load_time,
+        dom_interactive_time: perfData.dom_interactive_time,
+        first_paint_time: perfData.first_paint_time,
+        first_contentful_paint_time: perfData.first_contentful_paint_time,
+        country: state.geoData ? state.geoData.country : null,
+        country_code: state.geoData ? state.geoData.country_code : null,
+        city: state.geoData ? state.geoData.city : null,
+        timezone: state.geoData ? state.geoData.timezone : null
         // event_time: handled by server
         // ip_hash: handled by server
       };
+
+      return eventData;
     }, 'collectEventData') || {
       site_hex: state.siteHex,
       unique_cookie: state.uniqueCookie,
@@ -387,6 +640,9 @@
     setupActivityListeners();
     setupUnloadHandler();
     // setupPeriodicBeacon();
+
+    // Fetch geo data asynchronously (non-blocking)
+    fetchGeoData();
 
     // Initial page view
     trackPageView({ event_type: 'page_load' });
