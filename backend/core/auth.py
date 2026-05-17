@@ -119,20 +119,27 @@ def validate_session(session_token: str) -> Optional[int]:
 			expires_at = expires_at.replace(tzinfo=timezone.utc)
 		if _utc_now() > expires_at:
 			# Session expired, delete it
-			supabase.table("user_sessions").delete().eq("session_token", session_token).execute()
+			try:
+				supabase.table("user_sessions").delete().eq("session_token", session_token).execute()
+			except Exception:
+				pass  # Ignore errors during cleanup
 			return None
 
 		# Reset expiry to 15 days from now and update last activity
 		new_expires_at = _utc_now() + timedelta(days=SESSION_EXPIRY_DAYS)
-		supabase.table("user_sessions").update({
-			"last_activity_at": _utc_now().isoformat(),
-			"expires_at": new_expires_at.isoformat()
-		}).eq("session_token", session_token).execute()
+		try:
+			supabase.table("user_sessions").update({
+				"last_activity_at": _utc_now().isoformat(),
+				"expires_at": new_expires_at.isoformat()
+			}).eq("session_token", session_token).execute()
+		except Exception:
+			pass  # Ignore errors updating activity (session still valid)
 
 		return session["user_id"]
 
 	except Exception as e:
-		raise Exception(f"Failed to validate session: {str(e)}")
+		# Return None for any database errors (treat as invalid session)
+		return None
 
 
 def get_current_user(
@@ -194,9 +201,12 @@ def get_current_user(
 	except HTTPException:
 		raise
 	except Exception as e:
+		# Log the error but return 401 (treat DB errors as auth failure)
+		import logging
+		logging.error(f"Failed to fetch user {user_id}: {str(e)}")
 		raise HTTPException(
-			status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-			detail=f"Failed to fetch user: {str(e)}",
+			status_code=status.HTTP_401_UNAUTHORIZED,
+			detail="Authentication failed",
 		)
 
 
