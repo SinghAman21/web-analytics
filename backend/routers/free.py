@@ -1,13 +1,17 @@
 import os
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 
 from core.auth import create_session, extract_session_token, get_current_user, invalidate_session
 from core.config import GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
 from models.schemas import (
+    ErrorResponse,
+    FreeSiteCreateRequest,
+    FreeSiteCreateResponse,
+    FreeSiteListResponse,
     SignedInUser,
     SignedInUserResponse,
     LoginRequest,
@@ -18,6 +22,10 @@ from models.schemas import (
     GoogleAuthResponse,
 )
 from services.users import create_user, login_user, get_user_by_email, upsert_google_user
+from services.free import (
+    create_free_site,
+    list_free_sites,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
@@ -238,3 +246,55 @@ async def google_login(request: GoogleAuthRequest, response: Response):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Google authentication failed: {str(e)}",
         )
+    
+@router.get(
+    "/free-sites",
+    response_model=FreeSiteListResponse,
+    summary="List current user's sites",
+    description="Return only sites owned by the currently authenticated user.",
+    responses={401: {"model": ErrorResponse, "description": "Not authenticated"}},
+)
+async def list_free_sites_endpoint(
+    limit: int = Query(50, ge=1, le=100, description="Number of sites per page"),
+    offset: int = Query(0, ge=0, description="Number of records to skip"),
+    current_user: SignedInUser = Depends(get_current_user),
+):
+    try:
+        result = list_free_sites(user_id=current_user.id, limit=limit, offset=offset)
+        return {
+            "success": True,
+            "data": result["data"],
+            "count": result["count"],
+            "total": result["total"],
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/free-sites",
+    response_model=FreeSiteCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create site for current user",
+    description="Create a site owned by the authenticated user (used by /sites/new).",
+    responses={401: {"model": ErrorResponse, "description": "Not authenticated"}},
+)
+async def create_free_site_endpoint(
+    request: FreeSiteCreateRequest,
+    current_user: SignedInUser = Depends(get_current_user),
+):
+    try:
+        site = create_free_site(
+            user_id=current_user.id,
+            site_name=request.site_name,
+            site_url=request.site_url,
+        )
+        return {
+            "success": True,
+            "data": site,
+            "message": "Site created successfully",
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

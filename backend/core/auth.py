@@ -71,7 +71,7 @@ def create_session(user_id: int, ip_address: Optional[str] = None, user_agent: O
 	expires_at = _utc_now() + timedelta(days=SESSION_EXPIRY_DAYS)
 
 	try:
-		response = supabase.table("user_sessions").insert({
+		response = supabase.table("free_user_sessions").insert({
 			"user_id": user_id,
 			"session_token": session_token,
 			"ip_address": ip_address,
@@ -80,7 +80,7 @@ def create_session(user_id: int, ip_address: Optional[str] = None, user_agent: O
 		}).execute()
 
 		# Update user's last_signin_at
-		supabase.table("users").update({
+		supabase.table("free_users").update({
 			"last_signin_at": _utc_now().isoformat()
 		}).eq("id", user_id).execute()
 
@@ -104,7 +104,7 @@ def validate_session(session_token: str) -> Optional[int]:
 		Exception: If session lookup fails
 	"""
 	try:
-		response = supabase.table("user_sessions").select("*").eq(
+		response = supabase.table("free_user_sessions").select("*").eq(
 			"session_token", session_token
 		).execute()
 
@@ -120,7 +120,7 @@ def validate_session(session_token: str) -> Optional[int]:
 		if _utc_now() > expires_at:
 			# Session expired, delete it
 			try:
-				supabase.table("user_sessions").delete().eq("session_token", session_token).execute()
+				supabase.table("free_user_sessions").delete().eq("session_token", session_token).execute()
 			except Exception:
 				pass  # Ignore errors during cleanup
 			return None
@@ -128,7 +128,7 @@ def validate_session(session_token: str) -> Optional[int]:
 		# Reset expiry to 15 days from now and update last activity
 		new_expires_at = _utc_now() + timedelta(days=SESSION_EXPIRY_DAYS)
 		try:
-			supabase.table("user_sessions").update({
+			supabase.table("free_user_sessions").update({
 				"last_activity_at": _utc_now().isoformat(),
 				"expires_at": new_expires_at.isoformat()
 			}).eq("session_token", session_token).execute()
@@ -179,7 +179,7 @@ def get_current_user(
 
 	# Fetch user details
 	try:
-		response = supabase.table("users").select("*").eq("id", user_id).execute()
+		response = supabase.table("free_users").select("*").eq("id", user_id).execute()
 
 		if not response.data:
 			raise HTTPException(
@@ -231,7 +231,7 @@ def invalidate_session(session_token: str) -> bool:
 		Exception: If session deletion fails
 	"""
 	try:
-		supabase.table("user_sessions").delete().eq("session_token", session_token).execute()
+		supabase.table("free_user_sessions").delete().eq("session_token", session_token).execute()
 		return True
 	except Exception as e:
 		raise Exception(f"Failed to invalidate session: {str(e)}")

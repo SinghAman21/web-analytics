@@ -34,13 +34,13 @@ def create_user(email: str, password: str, first_name: Optional[str] = None,
 		logger.info(f"Creating user: {email}")
 
 		# Check if user already exists
-		existing = supabase.table("users").select("*").eq("email", email).execute()
+		existing = supabase.table("free_users").select("*").eq("email", email).execute()
 		if existing.data:
 			raise Exception("User with this email already exists")
 
 		password_hash = hash_password(password)
 
-		response = supabase.table("users").insert({
+		response = supabase.table("free_users").insert({
 			"email": email,
 			"password_hash": password_hash,
 			"auth_provider": "local",
@@ -71,7 +71,7 @@ def upsert_google_user(
 		logger.info(f"Upserting Google user: {email}")
 		now = datetime.utcnow().isoformat()
 
-		google_match = supabase.table("users").select("*").eq("google_sub", google_sub).execute()
+		google_match = supabase.table("free_users").select("*").eq("google_sub", google_sub).execute()
 		if google_match.data:
 			user_id = google_match.data[0]["id"]
 			update_data = {
@@ -84,12 +84,12 @@ def upsert_google_user(
 				"last_signin_at": now,
 				"updated_at": now,
 			}
-			response = supabase.table("users").update(update_data).eq("id", user_id).execute()
+			response = supabase.table("free_users").update(update_data).eq("id", user_id).execute()
 			if response.data:
 				return response.data[0]
 			raise Exception("Failed to update Google user")
 
-		email_match = supabase.table("users").select("*").eq("email", email).execute()
+		email_match = supabase.table("free_users").select("*").eq("email", email).execute()
 		if email_match.data:
 			user_id = email_match.data[0]["id"]
 			update_data = {
@@ -101,12 +101,12 @@ def upsert_google_user(
 				"last_signin_at": now,
 				"updated_at": now,
 			}
-			response = supabase.table("users").update(update_data).eq("id", user_id).execute()
+			response = supabase.table("free_users").update(update_data).eq("id", user_id).execute()
 			if response.data:
 				return response.data[0]
 			raise Exception("Failed to update existing user with Google profile")
 
-		response = supabase.table("users").insert({
+		response = supabase.table("free_users").insert({
 			"email": email,
 			"password_hash": None,
 			"auth_provider": "google",
@@ -148,7 +148,7 @@ def login_user(email: str, password: str, ip_address: Optional[str] = None,
 		logger.info(f"Login attempt: {email}")
 
 		# Find user by email
-		response = supabase.table("users").select("*").eq("email", email).execute()
+		response = supabase.table("free_users").select("*").eq("email", email).execute()
 		if not response.data:
 			raise Exception("Invalid email or password")
 
@@ -192,7 +192,7 @@ def get_user_by_id(user_id: int) -> Optional[Dict[str, Any]]:
 	"""
 	try:
 		logger.info(f"Fetching user: {user_id}")
-		response = supabase.table("users").select("*").eq("id", user_id).execute()
+		response = supabase.table("free_users").select("*").eq("id", user_id).execute()
 
 		if response.data:
 			logger.info(f"User found: {user_id}")
@@ -218,7 +218,7 @@ def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
 	"""
 	try:
 		logger.info(f"Fetching user by email: {email}")
-		response = supabase.table("users").select("*").eq("email", email).execute()
+		response = supabase.table("free_users").select("*").eq("email", email).execute()
 
 		if response.data:
 			logger.info(f"User found: {email}")
@@ -245,7 +245,7 @@ def update_user_last_signin(user_id: int) -> Optional[Dict[str, Any]]:
 	try:
 		logger.info(f"Updating last signin for user: {user_id}")
 		response = (
-			supabase.table("users")
+			supabase.table("free_users")
 			.update({"last_signin_at": datetime.now(timezone.utc).isoformat()})
 			.eq("id", user_id)
 			.execute()
@@ -275,7 +275,7 @@ def delete_user(user_id: int) -> bool:
 	"""
 	try:
 		logger.info(f"Deleting user: {user_id}")
-		supabase.table("users").delete().eq("id", user_id).execute()
+		supabase.table("free_users").delete().eq("id", user_id).execute()
 		logger.info(f"User deleted: {user_id}")
 		return True
 
@@ -313,7 +313,7 @@ def update_user_profile(user_id: int, first_name: Optional[str] = None,
 		if image_url is not None:
 			update_data["image_url"] = image_url
 
-		response = supabase.table("users").update(update_data).eq("id", user_id).execute()
+		response = supabase.table("free_users").update(update_data).eq("id", user_id).execute()
 
 		if response.data:
 			logger.info(f"Profile updated: {user_id}")

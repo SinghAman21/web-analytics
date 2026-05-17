@@ -81,6 +81,39 @@ class UltrafreeSiteListResponse(BaseModel):
     total: int
 
 
+class FreeSiteCreateRequest(BaseModel):
+    """Schema for creating a free-site owned by an authenticated free user."""
+
+    site_name: str = Field(..., min_length=1, max_length=120, description="Display name of the site")
+    site_url: str = Field(..., min_length=1, max_length=255, description="Public URL of the site")
+
+
+class FreeSiteResponse(BaseModel):
+    """Schema for authenticated free-site records."""
+
+    id: int
+    user_id: int
+    site_name: str
+    site_url: str
+    hex_share_id: str
+    is_active: bool = True
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class FreeSiteCreateResponse(BaseModel):
+    success: bool
+    data: FreeSiteResponse
+    message: str
+
+
+class FreeSiteListResponse(BaseModel):
+    success: bool
+    data: List[FreeSiteResponse]
+    count: int
+    total: int
+
+
 class EventLogResponse(BaseModel):
     success: bool
     data: Dict[str, Any]

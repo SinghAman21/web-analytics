@@ -3,26 +3,72 @@
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowUpRight, Plus } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import AppFooter from '@/components/shared/AppFooter';
 import { ModeToggle } from '@/components/toggle';
+import { SpinnerCustom } from '@/components/ui/spinner';
+import { getFreeSites, type FreeSite } from '@/lib/apis/freeSites';
 import { useAuth } from '@/lib/auth-context';
-
-const sites = [
-  { id: 'mysite-com', domain: 'mysite.com', routes: ['/', '/pricing', '/blog'], routeViews: [523, 312, 198], change: '+12%', status: 'active' },
-  { id: 'blog-com', domain: 'blog.com', routes: ['/', '/posts', '/about'], routeViews: [234, 156, 66], change: '+5%', status: 'active' },
-  { id: 'store-mysite', domain: 'store.mysite.com', routes: ['/', '/products'], routeViews: [56, 33], change: '-3%', status: 'active' },
-];
 
 const currentTier = {
   name: 'Signed-In',
   retention: '90 days',
   rateLimit: '1K req/min',
-  sitesUsed: 3,
 };
 
 export default function DashboardOverview() {
-  const { logout } = useAuth();
-  const totalPageviews = sites.reduce((sum, s) => sum + s.routeViews.reduce((a, b) => a + b, 0), 0);
+  const { logout, user, isLoading: authLoading } = useAuth();
+  const [sites, setSites] = useState<FreeSite[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSites = async () => {
+      try {
+        setLoading(true);
+        const data = await getFreeSites();
+        setSites(data);
+      } catch (error) {
+        console.error('Failed to fetch dashboards:', error);
+        setSites([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (!authLoading && user) {
+      fetchSites();
+      return;
+    }
+
+    if (!authLoading && !user) {
+      setLoading(false);
+      setSites([]);
+    }
+  }, [authLoading, user]);
+
+  const dashboardStats = useMemo(() => {
+    const totalSites = sites.length;
+    const uniqueDomains = new Set(sites.map((site) => {
+      try {
+        return new URL(site.site_url).hostname;
+      } catch {
+        return site.site_url.replace(/^https?:\/\//, '').split('/')[0];
+      }
+    })).size;
+    const latestCreated = sites[0]?.created_at
+      ? new Date(sites[0].created_at).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : 'No sites yet';
+
+    return {
+      totalSites,
+      uniqueDomains,
+      latestCreated,
+    };
+  }, [sites]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -65,20 +111,20 @@ export default function DashboardOverview() {
       <section className="border-b border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid grid-cols-2 md:grid-cols-4 divide-x divide-border">
           <div className="py-5 px-4">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Total Pageviews</p>
-            <p className="font-mono text-xl tabular-nums">{totalPageviews.toLocaleString()}</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Total Dashboards</p>
+            <p className="font-mono text-xl tabular-nums">{loading ? '—' : dashboardStats.totalSites.toLocaleString()}</p>
           </div>
           <div className="py-5 px-4">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Sites Tracked</p>
-            <p className="font-mono text-xl tabular-nums">{currentTier.sitesUsed}</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Unique Domains</p>
+            <p className="font-mono text-xl tabular-nums">{loading ? '—' : dashboardStats.uniqueDomains.toLocaleString()}</p>
+          </div>
+          <div className="py-5 px-4">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Latest Created</p>
+            <p className="font-mono text-sm">{loading ? 'Loading...' : dashboardStats.latestCreated}</p>
           </div>
           <div className="py-5 px-4">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Data Retention</p>
             <p className="font-mono text-xl">{currentTier.retention}</p>
-          </div>
-          <div className="py-5 px-4">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Rate Limit</p>
-            <p className="font-mono text-xl">{currentTier.rateLimit}</p>
           </div>
         </div>
       </section>
@@ -90,40 +136,64 @@ export default function DashboardOverview() {
             Analytics <span className="font-serif italic">dashboards</span>
           </h2>
 
-          <div className="space-y-4">
-            {sites.map((site, i) => {
-              const siteTotal = site.routeViews.reduce((a, b) => a + b, 0);
-              return (
+          {loading ? (
+            <div className="border border-border bg-card p-12 flex items-center justify-center">
+              <SpinnerCustom />
+            </div>
+          ) : sites.length === 0 ? (
+            <div className="border border-border bg-card p-12 text-center space-y-4">
+              <div className="mx-auto w-10 h-10 rounded-full border border-border flex items-center justify-center text-muted-foreground">
+                <Plus className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="heading mb-2">No dashboards yet</h3>
+                <p className="text-sm text-muted-foreground">Create your first site dashboard to start collecting analytics.</p>
+              </div>
+              <Link
+                href="/sites/new"
+                className="inline-flex items-center gap-2 bg-foreground text-background px-5 py-3 text-sm font-mono hover:opacity-90 transition-opacity"
+              >
+                <Plus className="w-4 h-4" />
+                New Site
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {sites.map((site, i) => (
                 <motion.div
-                  key={site.id}
+                  key={site.hex_share_id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
+                  transition={{ delay: i * 0.05 }}
                 >
                   <Link
-                    href={`/dashboard/${site.id}`}
-                    className="p-6 flex items-center justify-between group block border border-border bg-card hover:border-blue-600 dark:hover:border-blue-400 hover:bg-accent/5 transition-all"
+                    href={`/dashboard/${site.hex_share_id}`}
+                    className="p-6 flex items-center justify-between group block border border-border bg-card hover:border-foreground/40 hover:bg-accent/5 transition-all"
                   >
-                    <div className="flex items-center gap-6">
-                      <span className="w-2 h-2 rounded-full bg-success" />
-                      <div>
-                        <p className="font-mono text-sm text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{site.domain}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {siteTotal.toLocaleString()} pageviews • {site.routes.length} routes
-                        </p>
+                    <div className="flex items-center gap-6 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-success shrink-0" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <p className="font-mono text-sm text-foreground group-hover:text-foreground transition-colors truncate">{site.site_name}</p>
+                          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground shrink-0">Live</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">{site.site_url}</p>
+                        <p className="text-xs text-muted-foreground mt-1 font-mono">Created {new Date(site.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className={`font-mono text-xs tabular-nums ${site.change.startsWith('+') ? 'text-success' : 'text-destructive'}`}>
-                        {site.change}
-                      </span>
-                      <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                    <div className="flex items-center gap-4 shrink-0">
+                      <code className="text-xs font-mono text-muted-foreground hidden sm:block">{site.hex_share_id}</code>
+                      <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </div>
                   </Link>
                 </motion.div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Actions */}
           <div className="mt-12 flex items-center gap-4">
