@@ -13,6 +13,8 @@ import {
   type SiteInfo 
 } from '@/lib/apis/ultrafreeanalytics';
 import { SpinnerCustom } from '@/components/ui/spinner';
+import { CountUp } from '@/components/ui/count-up';
+import { DailyChart } from '@/components/analytics/DailyChart';
 
 const lockedFeatures = [
   { label: 'Page Performance', tier: 'Signed-In' },
@@ -170,71 +172,61 @@ export default function PublicDashboard() {
 
           {/* Key metrics — Free tier: Pageviews (aggregate), Unique Visitors (aggregate), Bounce Rate (aggregate) */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-0 border border-border divide-x divide-border mb-16">
-            <div className="p-6">
+            <motion.div
+              className="p-6 hover:bg-secondary/30 transition-colors"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
               <p className="label mb-3">Pageviews</p>
               <p className="text-4xl font-mono font-light tabular-nums">
-                {analytics.total_pageviews.toLocaleString()}
+                <CountUp value={analytics.total_pageviews} duration={1} delay={0.1} />
               </p>
               <p className="text-[10px] text-muted-foreground mt-2 font-mono">Sum of all routes</p>
-            </div>
-            <div className="p-6">
+            </motion.div>
+            <motion.div
+              className="p-6 hover:bg-secondary/30 transition-colors"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
               <p className="label mb-3">Unique Visitors</p>
               <p className="text-4xl font-mono font-light tabular-nums">
-                {analytics.unique_visitors.toLocaleString()}
+                <CountUp value={analytics.unique_visitors} duration={1} delay={0.15} />
               </p>
               <p className="text-[10px] text-muted-foreground mt-2 font-mono">Unique cookies</p>
-            </div>
-            <div className="p-6">
+            </motion.div>
+            <motion.div
+              className="p-6 hover:bg-secondary/30 transition-colors"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
               <p className="label mb-3">Bounce Rate</p>
               <p className="text-4xl font-mono font-light tabular-nums">
-                {analytics.bounce_rate}%
+                <CountUp value={analytics.bounce_rate} duration={1} delay={0.2} format="percent" />
               </p>
               <p className="text-[10px] text-muted-foreground mt-2 font-mono">Single-page sessions</p>
-            </div>
-            <div className="p-6">
+            </motion.div>
+            <motion.div
+              className="p-6 hover:bg-secondary/30 transition-colors"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
               <p className="label mb-3">Sessions</p>
               <p className="text-4xl font-mono font-light tabular-nums">
-                {analytics.sessions.toLocaleString()}
+                <CountUp value={analytics.sessions} duration={1} delay={0.25} />
               </p>
               <p className="text-[10px] text-muted-foreground mt-2 font-mono">Avg {analytics.avg_pages_per_session} pages/session</p>
-            </div>
+            </motion.div>
           </div>
 
           {/* Daily chart */}
           <section className="mb-16">
             <p className="label mb-6">{currentMonth} {currentYear}</p>
             <div className="editorial-card p-8">
-              {dailyData.length > 0 ? (
-                <>
-                  <div className="flex items-end gap-1 min-h-[200px] mb-4">
-                    {dailyData.map((item, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1 min-w-0">
-                        {item.views > 0 && (
-                          <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: `${item.views}px` }}
-                            transition={{ delay: i * 0.01, duration: 0.4 }}
-                            className="w-full bg-foreground/60 hover:bg-foreground transition-colors rounded-sm cursor-pointer"
-                            title={`${item.date}: ${item.views} views`}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {dailyData.map((item, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center text-center min-w-0">
-                        <span className="text-[10px] font-mono text-foreground">{item.day}</span>
-                        <span className="text-[8px] font-mono text-muted-foreground">{item.dayName}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="min-h-[200px] flex items-center justify-center text-muted-foreground text-sm">
-                  No data available
-                </div>
-              )}
+              <DailyChart data={dailyData} maxViews={maxViews} monthYear={`${currentMonth} ${currentYear}`} />
             </div>
           </section>
 
