@@ -1,7 +1,7 @@
 import os
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.gzip import GZipMiddleware
@@ -43,7 +43,7 @@ app.add_middleware(
     TrustedHostMiddleware, 
     allowed_hosts=["localhost", "127.0.0.1", "*.vercel.app"]
 )
-frontend_origin = os.getenv("FRONTEND_URL", "http://localhost:3000")
+frontend_origin = os.getenv("FRONTEND_URL", "https://pulsev0.vercel.app")
 allowed_origins = list({
 	frontend_origin,
 	"http://localhost:3000",
@@ -56,6 +56,32 @@ app.add_middleware(
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def public_ingest_cors_middleware(request: Request, call_next):
+    """
+    Allow public tracker ingestion from any origin without credentials.
+    Keep stricter allowlist CORS for all other endpoints.
+    """
+    if request.url.path == "/api/ping":
+        cors_headers = {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "POST, OPTIONS",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
+            "Access-Control-Max-Age": "86400",
+        }
+
+        if request.method == "OPTIONS":
+            return Response(status_code=204, headers=cors_headers)
+
+        response = await call_next(request)
+        for header, value in cors_headers.items():
+            response.headers[header] = value
+        return response
+
+    return await call_next(request)
+
 app.include_router(ultrafree_router)
 app.include_router(auth_router)
 
