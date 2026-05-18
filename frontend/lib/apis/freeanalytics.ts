@@ -109,7 +109,7 @@ export async function getSiteInfo(hexId: string): Promise<SiteInfo> {
  */
 export async function getAnalytics(hexId: string): Promise<AnalyticsData> {
   try {
-    const response = await fetch(`${API_URL}/api/analytics/${hexId}`, {
+    const response = await fetch(`${API_URL}/api/free/analytics/${hexId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

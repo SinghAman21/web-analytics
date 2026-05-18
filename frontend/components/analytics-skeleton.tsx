@@ -1,22 +1,23 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { TrendingUp, Lock, Globe, Monitor, Smartphone, Tablet } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import AppFooter from '@/components/shared/AppFooter';
 import { ModeToggle } from './toggle';
+import { getAnalytics, type AnalyticsData } from '@/lib/apis/freeanalytics';
 
-const overviewStats = {
-  today: 89,
-  change: '+12%',
-  bounce: 43,
-  avgSession: '2:15',
-  uniqueVisitors: 567,
-  dailyTrend: '+8%',
-  liveUsers: 4,
+const fallbackOverview = {
+  today: 0,
+  change: '+0%',
+  bounce: 0,
+  avgSession: '0:00',
+  uniqueVisitors: 0,
+  dailyTrend: '+0%',
+  liveUsers: 0,
 };
 
 const topPages = [
@@ -82,11 +83,33 @@ const devices = [
 const tabList = ['Overview', 'Pages', 'Referrers', 'Browsers', 'OS', 'Geo', 'Live'];
 
 export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
-  // const { siteId } = useParams();
   const router = useRouter();
   const [timeRange, setTimeRange] = useState<'today' | '7d' | '30d' | '90d'>('today');
   const [activeTab, setActiveTab] = useState('overview');
-  const totalPageviews = topPages.reduce((sum, p) => sum + p.views, 0);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchAnalytics() {
+      setLoading(true);
+      try {
+        const data = await getAnalytics(siteId);
+        if (mounted) setAnalytics(data);
+      } catch (err) {
+        console.error('Failed to fetch analytics for', siteId, err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    if (siteId) fetchAnalytics();
+    return () => {
+      mounted = false;
+    };
+  }, [siteId]);
+
+  const totalPageviews = analytics ? analytics.total_pageviews : topPages.reduce((sum, p) => sum + p.views, 0);
 
   const handleGeoClick = () => {
     router.push(`/dashboard/${siteId}?view=geo`);
@@ -139,33 +162,33 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
       {/* Quick Stats — Signed-In: Total + Live active, Unique + Daily trend, Bounce + Session duration */}
       <section className="border-b border-border">
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid grid-cols-2 md:grid-cols-5 divide-x divide-border py-6">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-6 px-4">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-6 px-4">
             <p className="label mb-2">Pageviews</p>
-            <p className="text-3xl font-mono font-light tabular-nums">{totalPageviews.toLocaleString()}</p>
+            <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : totalPageviews.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground mt-1 font-mono">Sum of all routes</p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }} className="py-6 px-4">
             <p className="label mb-2">Unique Visitors</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-mono font-light tabular-nums">{overviewStats.uniqueVisitors}</p>
-              <span className="text-xs font-mono text-success">{overviewStats.dailyTrend}</span>
+              <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : analytics?.unique_visitors ?? fallbackOverview.uniqueVisitors}</p>
+                <span className="text-xs font-mono text-success">{analytics ? (analytics.unique_visitors ? '+0%' : '+0%') : fallbackOverview.dailyTrend}</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1 font-mono">Daily trend</p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="py-6 px-4">
             <p className="label mb-2">Bounce Rate</p>
-            <p className="text-3xl font-mono font-light tabular-nums">{overviewStats.bounce}%</p>
+            <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : `${analytics?.bounce_rate ?? fallbackOverview.bounce}%`}</p>
             <p className="text-xs text-muted-foreground mt-1 font-mono">+ session duration</p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="py-6 px-4">
             <p className="label mb-2">Avg Session</p>
-            <p className="text-3xl font-mono font-light tabular-nums">{overviewStats.avgSession}</p>
+            {/* <p className="text-3xl font-mono font-light tabular-nums">{overviewStats.avgSession}</p> */}
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="py-6 px-4">
             <p className="label mb-2">Live Users</p>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <p className="text-3xl font-mono font-light tabular-nums">{overviewStats.liveUsers}</p>
+              <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : fallbackOverview.liveUsers}</p>
             </div>
             <p className="text-xs text-muted-foreground mt-1 font-mono">Last 5 min</p>
           </motion.div>
@@ -214,7 +237,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                     <span className="col-span-3 text-right">Views</span>
                     <span className="col-span-3 text-right">Avg Time</span>
                   </div>
-                  {topPages.slice(0, 5).map((page, i) => (
+                  {(analytics ? analytics.top_pages.slice(0, 5) : topPages.slice(0, 5)).map((page: any, i: number) => (
                     <motion.div
                       key={page.path}
                       initial={{ opacity: 0 }}
@@ -224,7 +247,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                     >
                       <span className="col-span-6 font-mono text-sm">{page.path}</span>
                       <span className="col-span-3 font-mono text-sm text-right tabular-nums">{page.views}</span>
-                      <span className="col-span-3 font-mono text-sm text-right tabular-nums">{page.time}</span>
+                      <span className="col-span-3 font-mono text-sm text-right tabular-nums">{(page.time as string) ?? '—'}</span>
                     </motion.div>
                   ))}
                 </div>

@@ -90,6 +90,7 @@ export default function DashboardOverview() {
           
           <div className="flex items-center gap-4">
             <span className="text-[10px] font-mono px-2 py-1 border border-border text-muted-foreground">{currentTier.name.toUpperCase()}</span>
+            <Link href="/dashboard/setup" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Setup Guide</Link>
             <Link href="/account" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Account</Link>
             <Link href="/billing" className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">Billing</Link>
             <button

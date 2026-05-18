@@ -38,8 +38,8 @@
   const CONFIG = {
     BACKEND_URL: 'https://wa-be.vercel.app/api/ping',
     PROXY_PATH: '/api/collect',
-    COOKIE_NAME: 'ultrafree_cookie',
-    SESSION_STORAGE_KEY: 'ultrafree_session',
+    COOKIE_NAME: 'free_cookie',
+    SESSION_STORAGE_KEY: 'free_session',
     SESSION_TIMEOUT_MS: 30 * 60 * 1000, // 30 minutes inactivity => new session
     COOKIE_EXPIRY_DAYS: 365,
     BEACON_INTERVAL: 120000, // 2 minutes
@@ -206,6 +206,87 @@
    */
   function getScreenResolution() {
     return window.screen.width + 'x' + window.screen.height;
+  }
+
+  /**
+   * Get viewport resolution
+   */
+  function getViewportResolution() {
+    return window.innerWidth + 'x' + window.innerHeight;
+  }
+
+  /**
+   * Get the current page title
+   */
+  function getPageTitle() {
+    return document.title || '';
+  }
+
+  /**
+   * Get the full current URL
+   */
+  function getPageUrl() {
+    return window.location.href;
+  }
+
+  /**
+   * Get the current hostname
+   */
+  function getHostname() {
+    return window.location.hostname || '';
+  }
+
+  /**
+   * Get the browser language
+   */
+  function getLanguage() {
+    return navigator.language || navigator.userLanguage || '';
+  }
+
+  /**
+   * Get the browser timezone
+   */
+  function getTimezone() {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    } catch (err) {
+      return '';
+    }
+  }
+
+  /**
+   * Get the current network connection type if available
+   */
+  function getConnectionInfo() {
+    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+
+    if (!connection) {
+      return {
+        connection_type: null,
+        connection_effective_type: null
+      };
+    }
+
+    return {
+      connection_type: connection.type || null,
+      connection_effective_type: connection.effectiveType || null
+    };
+  }
+
+  /**
+   * Estimate scroll depth as a percentage of the document height
+   */
+  function getScrollDepth() {
+    try {
+      const documentElement = document.documentElement;
+      const scrollTop = window.scrollY || documentElement.scrollTop || 0;
+      const viewportHeight = window.innerHeight || documentElement.clientHeight || 0;
+      const documentHeight = Math.max(documentElement.scrollHeight, document.body ? document.body.scrollHeight : 0, 1);
+      const progress = ((scrollTop + viewportHeight) / documentHeight) * 100;
+      return Math.max(0, Math.min(100, Math.round(progress)));
+    } catch (err) {
+      return null;
+    }
   }
 
   /**
@@ -440,16 +521,29 @@
       const browserOS = getBrowserAndOS();
       const utmParams = extractUTMParameters();
       const perfData = getPagePerformance();
+      const connectionInfo = getConnectionInfo();
+      const geoData = state.geoData || {};
 
       const eventData = {
+        event_type: 'page_view',
         site_hex: state.siteHex,
         unique_cookie: state.uniqueCookie,
         session_id: state.sessionId,
+        page_url: getPageUrl(),
         page_path: getPagePath(),
+        page_title: getPageTitle(),
+        page_hostname: getHostname(),
         device_type: detectDeviceType(),
+        viewport_res: getViewportResolution(),
         referrer: getReferrer(),
         screen_res: getScreenResolution(),
+        language: getLanguage(),
+        timezone: getTimezone() || geoData.timezone || null,
+        connection_type: connectionInfo.connection_type,
+        connection_effective_type: connectionInfo.connection_effective_type,
         is_bounce: isBounce(),
+        interaction_count: state.interactionCount,
+        scroll_depth: getScrollDepth(),
         browser: browserOS.browser,
         browser_version: browserOS.browser_version,
         os: browserOS.os,
@@ -463,16 +557,18 @@
         dom_interactive_time: perfData.dom_interactive_time,
         first_paint_time: perfData.first_paint_time,
         first_contentful_paint_time: perfData.first_contentful_paint_time,
-        country: state.geoData ? state.geoData.country : null,
-        country_code: state.geoData ? state.geoData.country_code : null,
-        city: state.geoData ? state.geoData.city : null,
-        timezone: state.geoData ? state.geoData.timezone : null
-        // event_time: handled by server
-        // ip_hash: handled by server
+        country: geoData.country || null,
+        country_code: geoData.country_code || null,
+        region: geoData.region || null,
+        city: geoData.city || null,
+        latitude: geoData.latitude || null,
+        longitude: geoData.longitude || null,
+        isp: geoData.isp || null
       };
 
       return eventData;
     }, 'collectEventData') || {
+      event_type: 'page_view',
       site_hex: state.siteHex,
       unique_cookie: state.uniqueCookie,
       session_id: state.sessionId,
@@ -653,7 +749,7 @@
   /**
    * Public API
    */
-  window.UltrafreeAnalytics = {
+  window.FreeAnalytics = {
     init: init,
     trackPageView: function() {
       trackPageView({ event_type: 'manual_page_view' });
@@ -667,12 +763,14 @@
     }
   };
 
+  window.FreeAnalytics = window.FreeAnalytics;
+
   function autoInitFromScriptTag() {
     const scripts = document.querySelectorAll('script[data-site-hex]');
     scripts.forEach(script => {
       const siteHex = script.getAttribute('data-site-hex');
       if (siteHex) {
-        window.UltrafreeAnalytics.init(siteHex);
+        window.FreeAnalytics.init(siteHex);
       }
     });
   }
@@ -686,7 +784,7 @@
 
 })();
 
-// document.cookie.includes('ultrafree_cookie=')
-// sessionStorage.getItem('ultrafree_session') 
-// window.UltrafreeAnalytics 
-// Network tab: confirm POSTs to /api/ultrafreeevents with unique_cookie and session_id
+// document.cookie.includes('free_cookie=')
+// sessionStorage.getItem('free_session') 
+// window.FreeAnalytics 
+// Network tab: confirm POSTs to /api/freeevents with unique_cookie and session_id

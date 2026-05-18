@@ -152,3 +152,39 @@ def log_ultrafreeevent(event_data: dict, ip_address: str) -> dict:
     except Exception as e:
         logger.error(f"Error logging event: {str(e)}", exc_info=True)
         raise Exception(f"Error logging event: {str(e)}")
+
+
+def get_site_tier(hex_share_id: str) -> Optional[str]:
+    """
+    Determine if a hex_share_id belongs to free or ultrafree tier.
+    
+    Args:
+        hex_share_id: The 12-character site identifier
+    
+    Returns:
+        'free' if in free_sites table,
+        'ultrafree' if in ultrafree table,
+        None if not found in either
+    """
+    try:
+        # Check free_sites first
+        free_response = supabase.table("free_sites").select(
+            "id"
+        ).eq("hex_share_id", hex_share_id).eq("is_active", True).limit(1).execute()
+        
+        if free_response.data:
+            return "free"
+        
+        # Check ultrafree
+        ultrafree_response = supabase.table("ultrafree").select(
+            "id"
+        ).eq("hex_share_id", hex_share_id).limit(1).execute()
+        
+        if ultrafree_response.data:
+            return "ultrafree"
+        
+        return None
+    
+    except Exception as e:
+        logger.error(f"Error determining site tier for {hex_share_id}: {str(e)}", exc_info=True)
+        return None

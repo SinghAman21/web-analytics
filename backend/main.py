@@ -9,6 +9,7 @@ from starlette.middleware.gzip import GZipMiddleware
 from models.schemas import ErrorResponse, HealthResponse, RootResponse
 from routers.free import router as auth_router
 from routers.ultrafree import router as ultrafree_router
+from routers.free_analytics import router as free_analytics_router
 
 TAGS_METADATA = [
     {
@@ -18,6 +19,10 @@ TAGS_METADATA = [
     {
         "name": "Ultrafree",
         "description": "Public site creation, event ingestion, and analytics endpoints.",
+    },
+    {
+        "name": "Free Analytics",
+        "description": "Authentication-required analytics endpoints for authenticated free-tier sites.",
     },
     {
         "name": "Auth",
@@ -84,6 +89,7 @@ async def public_ingest_cors_middleware(request: Request, call_next):
 
 app.include_router(ultrafree_router)
 app.include_router(auth_router)
+app.include_router(free_analytics_router)
 
 # Health check endpoint
 @app.get(

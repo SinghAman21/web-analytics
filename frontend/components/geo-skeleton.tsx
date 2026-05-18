@@ -1,22 +1,37 @@
 import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { ModeToggle } from './toggle';
-
-
-const countries = [
-  { name: 'India', percentage: 45, visitors: 4021 },
-  { name: 'United States', percentage: 23, visitors: 2057 },
-  { name: 'Germany', percentage: 12, visitors: 1073 },
-  { name: 'United Kingdom', percentage: 8, visitors: 715 },
-  { name: 'France', percentage: 5, visitors: 447 },
-  { name: 'Canada', percentage: 4, visitors: 358 },
-  { name: 'Other', percentage: 3, visitors: 268 },
-];
+import { getAnalytics, type AnalyticsData } from '@/lib/apis/freeanalytics';
 
 export default function GeoDashboard({ siteId }: { siteId: string }) {
-  // const { siteId } = useParams();
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const data = await getAnalytics(siteId);
+        if (mounted) setAnalytics(data);
+      } catch (err) {
+        console.error('Failed to fetch analytics for geo view', err);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    if (siteId) fetchData();
+    return () => {
+      mounted = false;
+    };
+  }, [siteId]);
+
+  // const countries = analytics && analytics.country_breakdown && analytics.country_breakdown.length > 0
+  //   ? analytics.country_breakdown.slice(0, 10)
+  //   : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,7 +71,7 @@ export default function GeoDashboard({ siteId }: { siteId: string }) {
           <section>
             <p className="label mb-8">By Country</p>
             <div className="space-y-5">
-              {countries.map((country, i) => (
+              {/* {countries.map((country, i) => (
                 <motion.div
                   key={country.name}
                   initial={{ opacity: 0 }}
@@ -82,7 +97,7 @@ export default function GeoDashboard({ siteId }: { siteId: string }) {
                     />
                   </div>
                 </motion.div>
-              ))}
+              ))} */}
             </div>
           </section>
 

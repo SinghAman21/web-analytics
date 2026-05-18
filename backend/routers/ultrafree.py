@@ -12,7 +12,7 @@ from models.schemas import (
     UltrafreeSiteListResponse,
 )
 from processing.ultrafree import process_analytics
-from services.ultrafree import create_ultrafree, list_ultrafree, log_ultrafreeevent
+from services.ultrafree import create_ultrafree, get_ultrafree, list_ultrafree, log_ultrafreeevent
 
 logger = logging.getLogger(__name__)
 
@@ -100,21 +100,43 @@ async def list_ultrafree_sites_endpoint(
 @router.post(
     "/api/ping",
     response_model=EventLogResponse,
-    summary="Ingest analytics event",
-    description="Store one frontend tracking event for a public site.",
-    responses={500: {"model": ErrorResponse, "description": "Server error"}},
+    summary="Ingest analytics event (unified)",
+    description="Store one frontend tracking event for either free or ultrafree site. Routes internally based on site ownership.",
+    responses={404: {"model": ErrorResponse, "description": "Site not found"}, 500: {"model": ErrorResponse, "description": "Server error"}},
 )
-async def log_event_endpoint(event: EventData, request: Request):
+async def log_event_unified_endpoint(event: EventData, request: Request):
+    """
+    Unified ping endpoint for both free and ultrafree sites.
+    Determines site tier automatically and routes to appropriate handler.
+    """
     try:
+        from services.ultrafree import get_site_tier
+        from services.free import log_free_event
+        
         client_ip = request.client.host if request.client else "unknown"
         event_dict = event.model_dump()
-        result = log_ultrafreeevent(event_dict, client_ip)
+        
+        # Determine site tier
+        tier = get_site_tier(event.site_hex)
+        
+        if tier == "free":
+            # Route to free tier logger
+            result = log_free_event(event_dict, client_ip)
+        elif tier == "ultrafree":
+            # Route to ultrafree tier logger
+            result = log_ultrafreeevent(event_dict, client_ip)
+        else:
+            raise HTTPException(status_code=404, detail="Site not found in either free or ultrafree")
+        
         return {
             "success": True,
             "data": result,
             "message": "Event logged successfully",
         }
+    except HTTPException:
+        raise
     except Exception as e:
+        logger.error(f"Error in unified ping endpoint: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

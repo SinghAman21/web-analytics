@@ -114,6 +114,106 @@ def list_free_sites(user_id: int, limit: int = 100, offset: int = 0) -> dict:
         raise Exception(f"Error listing user sites: {str(e)}")
 
 
+def get_free_site_by_hex(hex_share_id: str) -> Optional[dict]:
+    """Return the authenticated free-site record for a share hex, if it exists."""
+    try:
+        response = (
+            supabase.table("free_sites")
+            .select("*")
+            .eq("hex_share_id", hex_share_id)
+            .eq("is_active", True)
+            .limit(1)
+            .execute()
+        )
+        return response.data[0] if response.data else None
+    except Exception as e:
+        logger.error(f"Error fetching free site by hex: {str(e)}", exc_info=True)
+        raise Exception(f"Error fetching free site by hex: {str(e)}")
+
+
     # Backward-compatible aliases while routes/services are being renamed.
     create_user_site = create_free_site
     list_user_sites = list_free_sites
+
+
+def log_free_event(event_data: dict, ip_address: Optional[str] = None) -> dict:
+    """
+    Log an analytics event for a free-tier site.
+    
+    Args:
+        event_data: Dictionary containing event fields from the tracker payload.
+                   Must include 'site_hex', 'unique_cookie', 'session_id', 'page_path', etc.
+        ip_address: Optional client IP address for tracking (will be hashed for privacy)
+    
+    Returns:
+        The inserted event record
+    """
+    try:
+        if not event_data or not event_data.get("site_hex"):
+            raise ValueError("Event data must include site_hex")
+        
+        # Hash IP for privacy
+        ip_hash = hashlib.sha256(ip_address.encode()).hexdigest()[:16] if ip_address else None
+        
+        # Prepare event record with all fields from tracker
+        event_record = {
+            "site_hex": event_data.get("site_hex"),
+            "unique_cookie": event_data.get("unique_cookie"),
+            "session_id": event_data.get("session_id"),
+            "page_url": event_data.get("page_url"),
+            "page_path": event_data.get("page_path", "/"),
+            "page_title": event_data.get("page_title"),
+            "page_hostname": event_data.get("page_hostname"),
+            "device_type": event_data.get("device_type"),
+            "viewport_res": event_data.get("viewport_res"),
+            "screen_res": event_data.get("screen_res"),
+            "browser": event_data.get("browser"),
+            "browser_version": event_data.get("browser_version"),
+            "os": event_data.get("os"),
+            "os_version": event_data.get("os_version"),
+            "utm_source": event_data.get("utm_source"),
+            "utm_medium": event_data.get("utm_medium"),
+            "utm_campaign": event_data.get("utm_campaign"),
+            "utm_content": event_data.get("utm_content"),
+            "utm_term": event_data.get("utm_term"),
+            "referrer": event_data.get("referrer"),
+            "page_load_time": event_data.get("page_load_time"),
+            "dom_interactive_time": event_data.get("dom_interactive_time"),
+            "first_paint_time": event_data.get("first_paint_time"),
+            "first_contentful_paint_time": event_data.get("first_contentful_paint_time"),
+            "interaction_count": event_data.get("interaction_count", 0),
+            "scroll_depth": event_data.get("scroll_depth", 0),
+            "is_bounce": event_data.get("is_bounce", False),
+            "country": event_data.get("country"),
+            "country_code": event_data.get("country_code"),
+            "region": event_data.get("region"),
+            "city": event_data.get("city"),
+            "latitude": event_data.get("latitude"),
+            "longitude": event_data.get("longitude"),
+            "isp": event_data.get("isp"),
+            "connection_type": event_data.get("connection_type"),
+            "connection_effective_type": event_data.get("connection_effective_type"),
+            "language": event_data.get("language"),
+            "timezone": event_data.get("timezone"),
+            "event_type": event_data.get("event_type", "page_view"),
+            "event_time": event_data.get("event_time", datetime.utcnow().isoformat()),
+            "ip_hash": ip_hash,
+        }
+        
+        response = (
+            supabase.table("free_sites_data")
+            .insert(event_record)
+            .execute()
+        )
+        
+        if not response.data:
+            raise Exception("Failed to log event to free_sites_data")
+        
+        logger.debug(f"Event logged for site_hex={event_data.get('site_hex')}")
+        return response.data[0]
+    
+    except ValueError:
+        raise
+    except Exception as e:
+        logger.error(f"Error logging free event: {str(e)}", exc_info=True)
+        raise Exception(f"Error logging free event: {str(e)}")

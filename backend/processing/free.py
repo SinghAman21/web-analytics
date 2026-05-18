@@ -1,6 +1,55 @@
-def process_analytics(site_hex: str, hours: int = 24) -> Dict:
+"""
+Data processing logic for free analytics (authenticated users)
+Fetches raw events from free_sites_data table and processes them into analytics metrics
+"""
+
+from core.config import supabase
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict
+from collections import defaultdict
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def get_raw_events(site_hex: str, days: int = 30) -> List[Dict]:
     """
-    Process raw events into analytics metrics.
+    Fetch raw events for a site from the past N days.
+    
+    Args:
+        site_hex: The hex ID of the site (from free_sites.hex_share_id)
+        days: Number of days to look back (default: 30)
+    
+    Returns:
+        List of raw event records
+    """
+    try:
+        logger.info(f"Fetching raw events for site_hex={site_hex}, days={days}")
+        
+        if supabase is None:
+            logger.error("Supabase client is not initialized")
+            return []
+        
+        # Calculate timestamp for N days ago
+        cutoff_time = (datetime.utcnow() - timedelta(days=days)).isoformat()
+        logger.info(f"Cutoff time: {cutoff_time}")
+        
+        # Query from free_sites_data table (the new raw events table)
+        response = supabase.table("free_sites_data").select(
+            "*"
+        ).eq("site_hex", site_hex).gte("event_time", cutoff_time).execute()
+        
+        logger.info(f"Retrieved {len(response.data) if response.data else 0} events")
+        return response.data if response.data else []
+    
+    except Exception as e:
+        logger.error(f"Error fetching raw events: {str(e)}", exc_info=True)
+        raise Exception(f"Error fetching raw events: {str(e)}")
+
+
+def process_analytics(site_hex: str, days: int = 30) -> Dict:
+    """
+    Process raw events into analytics metrics for a free site.
     
     Calculates:
     - Total pageviews
@@ -8,24 +57,25 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
     - Bounce rate
     - Top pages
     - Device breakdown
+    - Daily data for current month
     
     Args:
-        site_hex: The hex ID of the site
-        hours: Number of hours to look back
+        site_hex: The hex ID of the site (from free_sites.hex_share_id)
+        days: Number of days to look back (default: 30)
     
     Returns:
         Dictionary with processed analytics data
     """
     try:
-        logger.info(f"Processing analytics for site_hex={site_hex}")
+        logger.info(f"Processing analytics for site_hex={site_hex}, days={days}")
         
-        events = get_raw_events(site_hex, hours)
+        events = get_raw_events(site_hex, days)
         
         if not events:
             logger.info(f"No events found for {site_hex}")
             return {
                 "site_hex": site_hex,
-                "period_hours": hours,
+                "period_hours": days * 24,
                 "total_pageviews": 0,
                 "unique_visitors": 0,
                 "bounce_rate": 0,
@@ -125,7 +175,7 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
 
         return {
             "site_hex": site_hex,
-            "period_hours": hours,
+            "period_hours": days * 24,
             "total_pageviews": total_pageviews,
             "unique_visitors": unique_visitors,
             "bounce_rate": bounce_rate,
@@ -142,3 +192,65 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
     
     except Exception as e:
         raise Exception(f"Error processing analytics: {str(e)}")
+
+
+def get_realtime_stats(site_hex: str) -> Dict:
+    """
+    Get real-time stats for a site (last 24 hours).
+    
+    Args:
+        site_hex: The hex ID of the site
+    
+    Returns:
+        Dictionary with real-time metrics
+    """
+    try:
+        logger.info(f"Fetching real-time stats for site_hex={site_hex}")
+        
+        if supabase is None:
+            logger.error("Supabase client is not initialized")
+            return {}
+        
+        cutoff_time = (datetime.utcnow() - timedelta(hours=24)).isoformat()
+        
+        # Get last 24h events
+        response = supabase.table("free_sites_data").select(
+            "unique_cookie, session_id, event_time, page_path, device_type"
+        ).eq("site_hex", site_hex).gte("event_time", cutoff_time).execute()
+        
+        if not response.data:
+            return {
+                "site_hex": site_hex,
+                "live_visitors": 0,
+                "views_24h": 0,
+                "top_pages": []
+            }
+        
+        events = response.data
+        live_cutoff = (datetime.utcnow() - timedelta(minutes=30)).isoformat()
+        live_visitors = len(set(
+            e["unique_cookie"] for e in events 
+            if e.get("event_time", "") >= live_cutoff
+        ))
+        
+        pages_24h = defaultdict(int)
+        for event in events:
+            pages_24h[event.get("page_path", "/")] += 1
+        
+        top_pages = sorted(
+            [{"path": path, "views": count} for path, count in pages_24h.items()],
+            key=lambda x: x["views"],
+            reverse=True
+        )[:5]
+        
+        return {
+            "site_hex": site_hex,
+            "live_visitors": live_visitors,
+            "views_24h": len(events),
+            "top_pages": top_pages,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    
+    except Exception as e:
+        logger.error(f"Error fetching real-time stats: {str(e)}", exc_info=True)
+        raise Exception(f"Error fetching real-time stats: {str(e)}")

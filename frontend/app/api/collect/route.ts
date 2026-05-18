@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Forward to actual backend
+    // Forward to actual backend unified ping endpoint
     const response = await fetch(`${BACKEND_URL}/api/ping`, {
       method: 'POST',
       headers: {
