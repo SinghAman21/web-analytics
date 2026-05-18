@@ -10,75 +10,8 @@ import AppFooter from '@/components/shared/AppFooter';
 import { ModeToggle } from './toggle';
 import { getAnalytics, type AnalyticsData } from '@/lib/apis/freeanalytics';
 
-const fallbackOverview = {
-  today: 0,
-  change: '+0%',
-  bounce: 0,
-  avgSession: '0:00',
-  uniqueVisitors: 0,
-  dailyTrend: '+0%',
-  liveUsers: 0,
-};
-
-const topPages = [
-  { path: '/', views: 523, time: '1:42', bounce: 34, exitRate: 18 },
-  { path: '/pricing', views: 312, time: '3:08', bounce: 28, exitRate: 22 },
-  { path: '/blog', views: 198, time: '4:22', bounce: 52, exitRate: 45 },
-  { path: '/features', views: 156, time: '2:45', bounce: 31, exitRate: 28 },
-  { path: '/docs', views: 134, time: '6:12', bounce: 15, exitRate: 12 },
-  { path: '/about', views: 89, time: '1:15', bounce: 62, exitRate: 58 },
-  { path: '/contact', views: 67, time: '1:45', bounce: 45, exitRate: 65 },
-];
-
-const referrers = [
-  { source: 'Google', visits: 234, percentage: 45, utm: 'organic' },
-  { source: 'Direct', visits: 178, percentage: 32, utm: '-' },
-  { source: 'Facebook', visits: 67, percentage: 12, utm: 'social' },
-  { source: 'Twitter', visits: 34, percentage: 6, utm: 'social' },
-  { source: 'LinkedIn', visits: 28, percentage: 5, utm: 'social' },
-];
-
-const liveSessions = [
-  { location: 'India', page: '/pricing', browser: 'Chrome', os: 'Windows', time: '2:34' },
-  { location: 'USA', page: '/docs', browser: 'Safari', os: 'macOS', time: '5:12' },
-  { location: 'Germany', page: '/blog', browser: 'Firefox', os: 'Linux', time: '1:08' },
-  { location: 'UK', page: '/', browser: 'Chrome', os: 'Android', time: '0:45' },
-];
-
-const browsers = [
-  { name: 'Chrome', share: 45, sessions: 234 },
-  { name: 'Safari', share: 23, sessions: 119 },
-  { name: 'Firefox', share: 15, sessions: 78 },
-  { name: 'Edge', share: 10, sessions: 52 },
-  { name: 'Other', share: 7, sessions: 36 },
-];
-
-const operatingSystems = [
-  { name: 'Windows', share: 32, sessions: 166 },
-  { name: 'macOS', share: 28, sessions: 145 },
-  { name: 'iOS', share: 18, sessions: 93 },
-  { name: 'Android', share: 15, sessions: 78 },
-  { name: 'Linux', share: 7, sessions: 36 },
-];
-
-const countries = [
-  { name: 'India', visitors: 234, percentage: 32, sparkline: [12, 18, 15, 22, 19, 25, 21] },
-  { name: 'United States', visitors: 178, percentage: 24, sparkline: [20, 22, 18, 24, 21, 23, 25] },
-  { name: 'Germany', visitors: 89, percentage: 12, sparkline: [8, 10, 12, 9, 11, 13, 12] },
-  { name: 'United Kingdom', visitors: 67, percentage: 9, sparkline: [5, 7, 6, 8, 7, 9, 8] },
-  { name: 'France', visitors: 45, percentage: 6, sparkline: [3, 5, 4, 6, 5, 7, 6] },
-  { name: 'Canada', visitors: 34, percentage: 5, sparkline: [2, 4, 3, 5, 4, 6, 5] },
-  { name: 'Japan', visitors: 28, percentage: 4, sparkline: [2, 3, 2, 4, 3, 4, 3] },
-  { name: 'Brazil', visitors: 23, percentage: 3, sparkline: [1, 3, 2, 3, 2, 4, 3] },
-  { name: 'Australia', visitors: 19, percentage: 3, sparkline: [1, 2, 2, 3, 2, 3, 2] },
-  { name: 'Netherlands', visitors: 12, percentage: 2, sparkline: [1, 1, 2, 1, 2, 2, 1] },
-];
-
-const devices = [
-  { name: 'Desktop', share: 52, icon: Monitor },
-  { name: 'Mobile', share: 38, icon: Smartphone },
-  { name: 'Tablet', share: 10, icon: Tablet },
-];
+// No hardcoded dummy data — use real analytics from the API.
+// When data is not available, show loading or empty state instead of fabricated numbers.
 
 const tabList = ['Overview', 'Pages', 'Referrers', 'Browsers', 'OS', 'Geo', 'Live'];
 
@@ -109,7 +42,19 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
     };
   }, [siteId]);
 
-  const totalPageviews = analytics ? analytics.total_pageviews : topPages.reduce((sum, p) => sum + p.views, 0);
+  const totalPageviews = analytics?.total_pageviews ?? 0;
+
+  // Derived lists from API data (fallback to empty arrays when not present)
+  const topPagesList = analytics?.top_pages ?? [];
+  const referrersList: any[] = (analytics as any)?.referrers ?? [];
+  const devicesList = analytics
+    ? [
+        { name: 'Desktop', share: analytics.desktop_percentage ?? 0, icon: Monitor },
+        { name: 'Mobile', share: analytics.mobile_percentage ?? 0, icon: Smartphone },
+      ]
+    : [];
+  const browsersList: any[] = (analytics as any)?.browsers ?? [];
+  const operatingSystemsList: any[] = (analytics as any)?.operating_systems ?? [];
 
   const handleGeoClick = () => {
     router.push(`/dashboard/${siteId}?view=geo`);
@@ -164,20 +109,20 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
         <div className="max-w-7xl mx-auto px-6 lg:px-12 grid grid-cols-2 md:grid-cols-5 divide-x divide-border py-6">
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-6 px-4">
             <p className="label mb-2">Pageviews</p>
-            <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : totalPageviews.toLocaleString()}</p>
+              <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : totalPageviews.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground mt-1 font-mono">Sum of all routes</p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.05 }} className="py-6 px-4">
             <p className="label mb-2">Unique Visitors</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : analytics?.unique_visitors ?? fallbackOverview.uniqueVisitors}</p>
-                <span className="text-xs font-mono text-success">{analytics ? (analytics.unique_visitors ? '+0%' : '+0%') : fallbackOverview.dailyTrend}</span>
+              <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : analytics?.unique_visitors ?? 0}</p>
+                <span className="text-xs font-mono text-success">{loading ? '—' : analytics ? '+0%' : '—'}</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1 font-mono">Daily trend</p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="py-6 px-4">
             <p className="label mb-2">Bounce Rate</p>
-            <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : `${analytics?.bounce_rate ?? fallbackOverview.bounce}%`}</p>
+            <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : `${analytics?.bounce_rate ?? 0}%`}</p>
             <p className="text-xs text-muted-foreground mt-1 font-mono">+ session duration</p>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }} className="py-6 px-4">
@@ -188,7 +133,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
             <p className="label mb-2">Live Users</p>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : fallbackOverview.liveUsers}</p>
+              <p className="text-3xl font-mono font-light tabular-nums">{loading ? '—' : (analytics?.live_users ?? 0)}</p>
             </div>
             <p className="text-xs text-muted-foreground mt-1 font-mono">Last 5 min</p>
           </motion.div>
@@ -237,7 +182,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                     <span className="col-span-3 text-right">Views</span>
                     <span className="col-span-3 text-right">Avg Time</span>
                   </div>
-                  {(analytics ? analytics.top_pages.slice(0, 5) : topPages.slice(0, 5)).map((page: any, i: number) => (
+                  {topPagesList.slice(0, 5).map((page: any, i: number) => (
                     <motion.div
                       key={page.path}
                       initial={{ opacity: 0 }}
@@ -260,7 +205,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                   <h3 className="text-2xl font-serif italic">Device breakdown</h3>
                 </div>
                 <div className="editorial-card p-8 space-y-6">
-                  {devices.map((d, i) => (
+                  {devicesList.map((d, i) => (
                     <div key={d.name}>
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-3">
@@ -291,7 +236,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                 <h3 className="text-2xl font-serif italic">Top referrers</h3>
               </div>
               <div className="grid lg:grid-cols-2 gap-8">
-                {referrers.slice(0, 4).map((ref, i) => (
+                {referrersList.slice(0, 4).map((ref, i) => (
                   <motion.div key={ref.source} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
                     <div className="flex items-baseline justify-between mb-2">
                       <div className="flex items-baseline gap-3">
@@ -327,7 +272,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                   <span className="col-span-2 text-right">Avg Time</span>
                   <span className="col-span-2 text-right">Exit Rate</span>
                 </div>
-                {topPages.map((page, i) => (
+                {topPagesList.map((page, i) => (
                   <motion.div
                     key={page.path}
                     initial={{ opacity: 0 }}
@@ -356,7 +301,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                 <p className="text-xs text-muted-foreground mt-2">Top 10 • Basic UTM (source/medium)</p>
               </div>
               <div className="space-y-6">
-                {referrers.map((s, i) => (
+                {referrersList.map((s, i) => (
                   <motion.div key={s.source} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
                     <div className="flex items-baseline justify-between mb-2">
                       <div className="flex items-baseline gap-4">
@@ -388,7 +333,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
               </div>
               <div className="grid lg:grid-cols-2 gap-12">
                 <div className="space-y-6">
-                  {browsers.map((b, i) => (
+                  {browsersList.map((b, i) => (
                     <motion.div key={b.name} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
                       <div className="flex items-baseline justify-between mb-2">
                         <span className="text-sm">{b.name}</span>
@@ -405,8 +350,8 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                 </div>
                 <div className="editorial-card p-8 flex flex-col justify-center">
                   <p className="label mb-4">Most Popular</p>
-                  <p className="text-5xl font-mono font-light tabular-nums mb-2">{browsers[0].share}%</p>
-                  <p className="text-lg">{browsers[0].name}</p>
+                  <p className="text-5xl font-mono font-light tabular-nums mb-2">{browsersList[0]?.share ?? 0}%</p>
+                  <p className="text-lg">{browsersList[0]?.name ?? '—'}</p>
                   <div className="divider my-6" />
                   <ProTeaser label="All browsers + version breakdown" />
                 </div>
@@ -423,7 +368,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
               </div>
               <div className="grid lg:grid-cols-2 gap-12">
                 <div className="space-y-6">
-                  {operatingSystems.map((os, i) => (
+                  {operatingSystemsList.map((os, i) => (
                     <motion.div key={os.name} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
                       <div className="flex items-baseline justify-between mb-2">
                         <span className="text-sm">{os.name}</span>
