@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 
 interface CountUpProps {
@@ -18,9 +18,8 @@ export function CountUp({
   format = 'number',
   className = '',
 }: CountUpProps) {
-  const displayValueRef = useRef(0);
-  //@ts-ignore
-  const frameRef = useRef<number>();
+  const [displayValue, setDisplayValue] = useState<number>(0);
+  const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
     const startTime = Date.now() + delay * 1000;
@@ -36,15 +35,17 @@ export function CountUp({
       }
 
       if (elapsed >= durationMs) {
-        displayValueRef.current = value;
-      } else {
-        // Easing function (easeOutQuad)
-        const progress = elapsed / durationMs;
-        const eased = progress < 0.5
-          ? 2 * progress * progress
-          : -1 + (4 - 2 * progress) * progress;
-        displayValueRef.current = Math.floor(eased * value);
+        setDisplayValue(value);
+        frameRef.current = null;
+        return;
       }
+
+      // Easing function (easeOutQuad-like)
+      const progress = Math.max(0, Math.min(1, elapsed / durationMs));
+      const eased = progress < 0.5
+        ? 2 * progress * progress
+        : -1 + (4 - 2 * progress) * progress;
+      setDisplayValue(Math.floor(eased * value));
 
       frameRef.current = requestAnimationFrame(animate);
     };
@@ -54,14 +55,15 @@ export function CountUp({
     return () => {
       if (frameRef.current) {
         cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
       }
     };
   }, [value, duration, delay]);
 
-  const displayValue =
+  const formatted =
     format === 'percent'
-      ? `${Math.round(displayValueRef.current)}%`
-      : displayValueRef.current.toLocaleString();
+      ? `${Math.round(displayValue)}%`
+      : displayValue.toLocaleString();
 
   return (
     <motion.span
@@ -70,7 +72,7 @@ export function CountUp({
       transition={{ delay }}
       className={className}
     >
-      {displayValue}
+      {formatted}
     </motion.span>
   );
 }
