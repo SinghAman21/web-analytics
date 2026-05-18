@@ -55,6 +55,8 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
     : [];
   const browsersList: any[] = (analytics as any)?.browsers ?? [];
   const operatingSystemsList: any[] = (analytics as any)?.operating_systems ?? [];
+  const countriesList: any[] = (analytics as any)?.country_breakdown ?? [];
+  const liveSessions: any[] = (analytics as any)?.live_sessions ?? [];
 
   const handleGeoClick = () => {
     router.push(`/dashboard/${siteId}?view=geo`);
@@ -422,8 +424,8 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                   <span className="col-span-2 text-right">Share</span>
                   <span className="col-span-2 text-right">7d Trend</span>
                 </div>
-                {countries.map((c, i) => {
-                  const maxVal = Math.max(...c.sparkline);
+                {countriesList.map((c, i) => {
+                  const maxVal = Math.max(...(c.sparkline ?? []));
                   return (
                     <motion.div
                       key={c.name}
