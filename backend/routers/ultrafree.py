@@ -115,16 +115,33 @@ async def log_event_unified_endpoint(event: EventData, request: Request):
         
         client_ip = request.client.host if request.client else "unknown"
         event_dict = event.model_dump()
-        
+        logger.debug(f"Unified ping received from IP={client_ip} payload={event_dict}")
+
+        # Basic payload validation
+        if not event_dict or not event_dict.get("site_hex"):
+            raise HTTPException(status_code=400, detail="Missing required field: site_hex")
+
         # Determine site tier
-        tier = get_site_tier(event.site_hex)
+        try:
+            tier = get_site_tier(event_dict.get("site_hex"))
+        except Exception as e:
+            logger.error(f"Error resolving site tier: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail="Error resolving site tier")
         
         if tier == "free":
             # Route to free tier logger
-            result = log_free_event(event_dict, client_ip)
+            try:
+                result = log_free_event(event_dict, client_ip)
+            except Exception as e:
+                logger.error(f"Error logging free event: {e}", exc_info=True)
+                raise HTTPException(status_code=500, detail="Failed to log free event")
         elif tier == "ultrafree":
             # Route to ultrafree tier logger
-            result = log_ultrafreeevent(event_dict, client_ip)
+            try:
+                result = log_ultrafreeevent(event_dict, client_ip)
+            except Exception as e:
+                logger.error(f"Error logging ultrafree event: {e}", exc_info=True)
+                raise HTTPException(status_code=500, detail="Failed to log ultrafree event")
         else:
             raise HTTPException(status_code=404, detail="Site not found in either free or ultrafree")
         

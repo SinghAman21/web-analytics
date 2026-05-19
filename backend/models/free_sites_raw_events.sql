@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS free_sites_raw_event (
 	latitude NUMERIC(10, 7),
 	longitude NUMERIC(10, 7),
 	isp TEXT,
+	ip_hash VARCHAR(16),
 	created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
 	CONSTRAINT chk_free_sites_raw_event_hex_format CHECK (site_hex ~ '^[a-zA-Z0-9]{12}$'),

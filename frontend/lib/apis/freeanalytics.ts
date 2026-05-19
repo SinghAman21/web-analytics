@@ -10,6 +10,7 @@ export interface EventData {
   site_hex: string;
   unique_cookie: string;
   session_id: string;
+  page_url?: string;
   page_path: string;
   device_type: string;
   screen_res?: string;

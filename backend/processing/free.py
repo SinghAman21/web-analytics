@@ -1,6 +1,6 @@
 """
 Data processing logic for free analytics (authenticated users)
-Fetches raw events from free_sites_data table and processes them into analytics metrics
+Fetches raw events from free_sites_raw_event table and processes them into analytics metrics
 """
 
 from core.config import supabase
@@ -34,8 +34,8 @@ def get_raw_events(site_hex: str, days: int = 30) -> List[Dict]:
         cutoff_time = (datetime.utcnow() - timedelta(days=days)).isoformat()
         logger.info(f"Cutoff time: {cutoff_time}")
         
-        # Query from free_sites_data table (the new raw events table)
-        response = supabase.table("free_sites_data").select(
+        # Query from free_sites_raw_event table (the new raw events table)
+        response = supabase.table("free_sites_raw_event").select(
             "*"
         ).eq("site_hex", site_hex).gte("event_time", cutoff_time).execute()
         
@@ -214,7 +214,7 @@ def get_realtime_stats(site_hex: str) -> Dict:
         cutoff_time = (datetime.utcnow() - timedelta(hours=24)).isoformat()
         
         # Get last 24h events
-        response = supabase.table("free_sites_data").select(
+        response = supabase.table("free_sites_raw_event").select(
             "unique_cookie, session_id, event_time, page_path, device_type"
         ).eq("site_hex", site_hex).gte("event_time", cutoff_time).execute()
         

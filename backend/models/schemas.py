@@ -43,6 +43,7 @@ class EventData(BaseModel):
     site_hex: str = Field(..., min_length=12, max_length=12, pattern=r"^[a-zA-Z0-9]{12}$")
     unique_cookie: str = Field(..., description="Persistent visitor identifier")
     session_id: str = Field(..., description="Per-tab/session identifier")
+    page_url: Optional[str] = Field(None, description="Full current page URL", examples=["https://example.com/pricing"])
     page_path: str = Field(..., description="Current page path", examples=["/pricing"])
     device_type: str = Field(..., description="Device category", examples=["desktop", "mobile", "tablet"])
     screen_res: Optional[str] = Field(None, description="Screen resolution", examples=["1920x1080"])

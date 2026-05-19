@@ -156,11 +156,13 @@ def log_free_event(event_data: dict, ip_address: Optional[str] = None) -> dict:
         ip_hash = hashlib.sha256(ip_address.encode()).hexdigest()[:16] if ip_address else None
         
         # Prepare event record with all fields from tracker
+        page_url = event_data.get("page_url") or event_data.get("page_path") or "/"
+
         event_record = {
             "site_hex": event_data.get("site_hex"),
             "unique_cookie": event_data.get("unique_cookie"),
             "session_id": event_data.get("session_id"),
-            "page_url": event_data.get("page_url"),
+            "page_url": page_url,
             "page_path": event_data.get("page_path", "/"),
             "page_title": event_data.get("page_title"),
             "page_hostname": event_data.get("page_hostname"),
@@ -201,13 +203,13 @@ def log_free_event(event_data: dict, ip_address: Optional[str] = None) -> dict:
         }
         
         response = (
-            supabase.table("free_sites_data")
+            supabase.table("free_sites_raw_event")
             .insert(event_record)
             .execute()
         )
         
         if not response.data:
-            raise Exception("Failed to log event to free_sites_data")
+            raise Exception("Failed to log event to free_sites_raw_event")
         
         logger.debug(f"Event logged for site_hex={event_data.get('site_hex')}")
         return response.data[0]
