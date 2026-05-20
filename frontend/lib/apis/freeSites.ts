@@ -25,7 +25,7 @@ interface FreeSiteCreateResponse {
 }
 
 export async function getFreeSites(): Promise<FreeSite[]> {
-  const response = await fetch(`${API_URL}/api/auth/free-sites`, {
+  const response = await fetch(`${API_URL}/api/free/free-sites`, {
     method: 'GET',
     credentials: 'include',
     headers: {
@@ -49,7 +49,7 @@ export async function getFreeSites(): Promise<FreeSite[]> {
 }
 
 export async function createFreeSite(site_name: string, site_url: string): Promise<FreeSite> {
-  const response = await fetch(`${API_URL}/api/auth/free-sites`, {
+  const response = await fetch(`${API_URL}/api/free/free-sites`, {
     method: 'POST',
     credentials: 'include',
     headers: {

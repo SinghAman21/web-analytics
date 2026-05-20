@@ -112,6 +112,7 @@ export async function getAnalytics(hexId: string): Promise<AnalyticsData> {
   try {
     const response = await fetch(`${API_URL}/api/free/analytics/${hexId}`, {
       method: 'GET',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
