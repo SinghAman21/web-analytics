@@ -39,8 +39,8 @@ export interface RankedBreakdownItem {
 }
 
 export interface ReferrerBreakdownItem {
-  source: string;
-  utm: string;
+  source_name: string;
+  source_type: string;
   visits: number;
   percentage: number;
 }

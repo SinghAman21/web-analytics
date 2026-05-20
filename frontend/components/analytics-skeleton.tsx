@@ -246,11 +246,11 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                   <div className="text-sm text-muted-foreground">No referrer data yet.</div>
                 ) : (
                   referrersList.slice(0, 4).map((ref, i) => (
-                    <motion.div key={ref.source} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
+                    <motion.div key={ref.source_name} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
                       <div className="flex items-baseline justify-between mb-2">
                         <div className="flex items-baseline gap-3">
-                          <span className="text-sm">{ref.source}</span>
-                          <span className="font-mono text-xs text-muted-foreground">{ref.utm}</span>
+                          <span className="text-sm font-medium">{ref.source_name}</span>
+                          <span className="font-mono text-xs text-muted-foreground px-2 py-1 bg-secondary rounded">{ref.source_type}</span>
                         </div>
                         <span className="font-mono text-sm tabular-nums">{ref.visits}</span>
                       </div>
@@ -292,9 +292,9 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                   >
                     <span className="col-span-4 font-mono text-sm">{page.path}</span>
                     <span className="col-span-2 font-mono text-sm text-right tabular-nums">{page.views}</span>
-                    <span className={`col-span-2 font-mono text-sm text-right tabular-nums ${page.bounce > 50 ? 'text-warning' : ''}`}>{page.bounce}%</span>
+                    <span className={`col-span-2 font-mono text-sm text-right tabular-nums ${(page.bounce ?? 0) > 50 ? 'text-warning' : ''}`}>{page.bounce ?? 0}%</span>
                     <span className="col-span-2 font-mono text-sm text-right tabular-nums">{page.time}</span>
-                    <span className={`col-span-2 font-mono text-sm text-right tabular-nums ${page.exitRate > 50 ? 'text-warning' : page.exitRate < 20 ? 'text-success' : ''}`}>{page.exitRate}%</span>
+                    <span className={`col-span-2 font-mono text-sm text-right tabular-nums ${(page.exitRate ?? 0) > 50 ? 'text-warning' : (page.exitRate ?? 0) < 20 ? 'text-success' : ''}`}>{page.exitRate ?? 0}%</span>
                   </motion.div>
                 ))}
               </div>
@@ -302,21 +302,21 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
             <ProTeaser label="Heatmap & Funnel Analysis available on Pro" showUpgrade />
           </TabsContent>
 
-          {/* REFERRERS TAB — Signed-In: Top 10, searchable, basic UTM */}
+          {/* REFERRERS TAB — Signed-In: Top 10, searchable, basic source info */}
           <TabsContent value="referrers" className="mt-0 space-y-16">
             <section>
               <div className="mb-8">
                 <p className="label mb-2">Acquisition</p>
                 <h3 className="text-2xl font-serif italic">Where visitors come from</h3>
-                <p className="text-xs text-muted-foreground mt-2">Top 10 • Basic UTM (source/medium)</p>
+                <p className="text-xs text-muted-foreground mt-2">Top 10 • Source name & type (UTM, Ref, Referrer, Direct)</p>
               </div>
               <div className="space-y-6">
                 {referrersList.map((s, i) => (
-                  <motion.div key={s.source} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
+                  <motion.div key={`${s.source_name}-${s.source_type}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
                     <div className="flex items-baseline justify-between mb-2">
                       <div className="flex items-baseline gap-4">
-                        <span className="text-sm">{s.source}</span>
-                        <span className="font-mono text-xs text-muted-foreground">{s.utm}</span>
+                        <span className="text-sm font-medium">{s.source_name}</span>
+                        <span className="font-mono text-xs text-muted-foreground px-2 py-1 bg-secondary rounded">{s.source_type}</span>
                       </div>
                       <div className="flex items-baseline gap-4">
                         <span className="font-mono text-sm tabular-nums">{s.visits}</span>
@@ -330,7 +330,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                 ))}
               </div>
             </section>
-            <ProTeaser label="Full UTM Breakdown (source / medium / campaign) available on Pro" showUpgrade />
+            <ProTeaser label="Full UTM details (source / medium / campaign / term / content) available on Pro" showUpgrade />
           </TabsContent>
 
           {/* BROWSERS TAB — Signed-In: Top 10 */}

@@ -22,7 +22,7 @@
     COOKIE_NAME: 'ultrafree_cookie',
     SESSION_STORAGE_KEY: 'ultrafree_session',
     SESSION_TIMEOUT_MS: 30 * 60 * 1000, // 30 minutes inactivity => new session
-    COOKIE_EXPIRY_DAYS: 365,
+    COOKIE_EXPIRY_DAYS: 15,
     BEACON_INTERVAL: 120000, // 2 minutes
     INTERACTION_THROTTLE_MS: 15000,
     MAX_KEEPALIVE_BYTES: 60 * 1024,

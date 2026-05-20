@@ -41,7 +41,7 @@
     COOKIE_NAME: 'free_cookie',
     SESSION_STORAGE_KEY: 'free_session',
     SESSION_TIMEOUT_MS: 30 * 60 * 1000, // 30 minutes inactivity => new session
-    COOKIE_EXPIRY_DAYS: 365,
+    COOKIE_EXPIRY_DAYS: 90,
     BEACON_INTERVAL: 120000, // 2 minutes
     INTERACTION_THROTTLE_MS: 15000,
     MAX_KEEPALIVE_BYTES: 60 * 1024,
@@ -340,6 +340,69 @@
   }
 
   /**
+   * Extract ref parameter from current URL
+   */
+  function extractRefParameter() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('ref') || null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  /**
+   * Extract hostname from URL
+   */
+  function getHostnameFromUrl(url) {
+    try {
+      return new URL(url).hostname;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  /**
+   * Determine source type and source name from utm, ref, referrer, and direct
+   * Priority: utm > ref > referrer > direct
+   */
+  function getSourceTypeAndName(utmParams, refParam, referrer) {
+    const utmSource = utmParams.utm_source;
+    
+    if (utmSource) {
+      // UTM source takes priority
+      return {
+        source_type: 'utm',
+        source_name: utmSource
+      };
+    }
+    
+    if (refParam) {
+      // Ref parameter is next priority
+      return {
+        source_type: 'ref',
+        source_name: refParam
+      };
+    }
+    
+    if (referrer && referrer !== '' && !['direct', '(direct)', 'none', 'null'].includes(referrer)) {
+      // Referrer is third priority
+      const hostname = getHostnameFromUrl(referrer);
+      const sourceName = hostname || referrer;
+      return {
+        source_type: 'referrer',
+        source_name: sourceName
+      };
+    }
+    
+    // Default to direct
+    return {
+      source_type: 'direct',
+      source_name: 'Direct'
+    };
+  }
+
+  /**
    * Parse user agent to detect browser and OS
    */
   function getBrowserAndOS() {
@@ -520,9 +583,11 @@
       touchSession();
       const browserOS = getBrowserAndOS();
       const utmParams = extractUTMParameters();
+      const refParam = extractRefParameter();
       const perfData = getPagePerformance();
       const connectionInfo = getConnectionInfo();
       const geoData = state.geoData || {};
+      const { source_type, source_name } = getSourceTypeAndName(utmParams, refParam, getReferrer());
 
       const eventData = {
         event_type: 'page_view',
@@ -553,6 +618,9 @@
         utm_campaign: utmParams.utm_campaign,
         utm_content: utmParams.utm_content,
         utm_term: utmParams.utm_term,
+        ref: refParam,
+        source_type: source_type,
+        source_name: source_name,
         page_load_time: perfData.page_load_time,
         dom_interactive_time: perfData.dom_interactive_time,
         first_paint_time: perfData.first_paint_time,

@@ -33,6 +33,18 @@ def _safe_name(value: Optional[str], fallback: str = 'Unknown') -> str:
 
 
 def _normalize_referrer(event: Dict) -> tuple[str, str]:
+    """
+    Extract source name and type from event.
+    This function now uses the pre-computed source_type and source_name from the tracker.
+    Falls back to old logic if not provided.
+    """
+    source_name = event.get('source_name')
+    source_type = event.get('source_type')
+    
+    if source_name and source_type:
+        return source_name, source_type
+    
+    # Fallback to old logic for backward compatibility
     utm_source = _safe_name(event.get('utm_source'), '')
     utm_medium = _safe_name(event.get('utm_medium'), 'none')
     utm_campaign = _safe_name(event.get('utm_campaign'), '')
@@ -48,9 +60,8 @@ def _normalize_referrer(event: Dict) -> tuple[str, str]:
     else:
         source = 'Direct'
 
-    utm_parts = [part for part in [utm_medium if utm_medium != 'none' else '', utm_campaign] if part]
-    utm_value = ' / '.join(utm_parts) if utm_parts else utm_medium
-    return source, utm_value
+    # For backward compatibility, return source as second value
+    return source, ''
 
 
 def _format_live_age(event_time: Optional[datetime]) -> str:
@@ -275,10 +286,10 @@ def process_analytics(site_hex: str, days: int = 30) -> Dict:
                                 'time': _format_live_age(event_dt),
                             }
 
-            referrer_source, referrer_utm = _normalize_referrer(event)
+            referrer_source, referrer_type = _normalize_referrer(event)
             session_id = _safe_name(event.get("session_id"), '')
             if session_id:
-                referrers[(referrer_source, referrer_utm)].add(session_id)
+                referrers[(referrer_source, referrer_type)].add(session_id)
 
             browser_name = ' '.join([part for part in [_safe_name(event.get("browser"), 'Unknown'), _safe_name(event.get("browser_version"), '')] if part]).strip()
             if session_id:
@@ -290,11 +301,11 @@ def process_analytics(site_hex: str, days: int = 30) -> Dict:
 
         total_referrer_visits = sum(len(session_ids) for session_ids in referrers.values()) or 0
         referrer_breakdown = []
-        for (source, utm), session_ids in sorted(referrers.items(), key=lambda item: len(item[1]), reverse=True)[:10]:
+        for (source_name, source_type), session_ids in sorted(referrers.items(), key=lambda item: len(item[1]), reverse=True)[:10]:
             visits = len(session_ids)
             referrer_breakdown.append({
-                'source': source,
-                'utm': utm,
+                'source_name': source_name,
+                'source_type': source_type,
                 'visits': visits,
                 'percentage': round((visits / total_referrer_visits * 100)) if total_referrer_visits > 0 else 0,
             })
