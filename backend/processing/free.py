@@ -34,34 +34,35 @@ def _safe_name(value: Optional[str], fallback: str = 'Unknown') -> str:
 
 def _normalize_referrer(event: Dict) -> tuple[str, str]:
     """
-    Extract source name and type from event.
-    This function now uses the pre-computed source_type and source_name from the tracker.
-    Falls back to old logic if not provided.
+    Extract source name and source type from event.
+    Prefer tracker-provided source_name/source_type and fall back to URL-derived data.
     """
     source_name = event.get('source_name')
     source_type = event.get('source_type')
     
     if source_name and source_type:
-        return source_name, source_type
+        normalized_type = 'redirect' if source_type == 'ref' else source_type
+        return source_name, normalized_type
     
-    # Fallback to old logic for backward compatibility
+    ref_param = _safe_name(event.get('ref'), '')
     utm_source = _safe_name(event.get('utm_source'), '')
-    utm_medium = _safe_name(event.get('utm_medium'), 'none')
-    utm_campaign = _safe_name(event.get('utm_campaign'), '')
     referrer = _safe_name(event.get('referrer'), '')
 
     if utm_source:
-        source = utm_source
-    elif referrer and referrer not in {'direct', '(direct)', 'none', 'null'}:
+        return utm_source, 'utm'
+
+    if ref_param:
+        return ref_param, 'redirect'
+
+    if referrer and referrer not in {'direct', '(direct)', 'none', 'null'}:
         try:
-            source = urlparse(referrer).hostname or referrer
+            hostname = urlparse(referrer).hostname or referrer
+            source = hostname.replace('www.', '') if hostname else referrer
         except Exception:
             source = referrer
-    else:
-        source = 'Direct'
+        return source, 'referrer'
 
-    # For backward compatibility, return source as second value
-    return source, ''
+    return 'Direct', 'direct'
 
 
 def _format_live_age(event_time: Optional[datetime]) -> str:

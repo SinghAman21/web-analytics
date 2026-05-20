@@ -39,6 +39,7 @@
     BACKEND_URL: 'https://wa-be.vercel.app/api/ping',
     PROXY_PATH: '/api/collect',
     COOKIE_NAME: 'free_cookie',
+    FIRST_TOUCH_COOKIE_NAME: 'free_first_touch',
     SESSION_STORAGE_KEY: 'free_session',
     SESSION_TIMEOUT_MS: 30 * 60 * 1000, // 30 minutes inactivity => new session
     COOKIE_EXPIRY_DAYS: 90,
@@ -67,7 +68,8 @@
     initialized: false,
     geoData: null,
     geoFetched: false,
-    performanceData: null
+    performanceData: null,
+    firstTouch: null
   };
 
   function safeRun(fn, label) {
@@ -180,6 +182,259 @@
         return decodeURIComponent(cookie.substring(nameEQ.length));
       }
     }
+    return null;
+  }
+
+  function deleteCookie(name) {
+    document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+  }
+
+  function safeJsonParse(value) {
+    try {
+      return JSON.parse(value);
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function sanitizeHostname(hostname) {
+    if (!hostname) {
+      return '';
+    }
+
+    return String(hostname).toLowerCase().replace(/^www\./, '').trim();
+  }
+
+  function normalizeSourceNameFromHostname(hostname) {
+    const cleaned = sanitizeHostname(hostname);
+    if (!cleaned) {
+      return '';
+    }
+
+    const parts = cleaned.split('.').filter(Boolean);
+    if (parts.length <= 1) {
+      return parts[0] || cleaned;
+    }
+
+    if (parts.length === 2) {
+      return parts[0];
+    }
+
+    const last = parts[parts.length - 1];
+    const secondLast = parts[parts.length - 2];
+    const thirdLast = parts[parts.length - 3];
+    const multiPartSuffix = ['co', 'com', 'net', 'org', 'gov', 'edu'];
+
+    if (last.length === 2 && multiPartSuffix.includes(secondLast)) {
+      return thirdLast || secondLast;
+    }
+
+    return secondLast || parts[0] || cleaned;
+  }
+
+  function isExternalReferrer(referrer) {
+    if (!referrer) {
+      return false;
+    }
+
+    try {
+      const currentHost = sanitizeHostname(window.location.hostname);
+      const referrerHost = sanitizeHostname(new URL(referrer).hostname);
+      if (!referrerHost || !currentHost) {
+        return false;
+      }
+      return referrerHost !== currentHost && !referrerHost.endsWith('.' + currentHost) && !currentHost.endsWith('.' + referrerHost);
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function getClickIdFromUrl() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const candidates = [
+        'click_id',
+        'cid',
+        'ref',
+        'gclid',
+        'gbraid',
+        'wbraid',
+        'fbclid',
+        'msclkid',
+        'ttclid',
+        'yclid'
+      ];
+
+      for (let i = 0; i < candidates.length; i++) {
+        const key = candidates[i];
+        const value = params.get(key);
+        if (value) {
+          return { key: key, value: value };
+        }
+      }
+    } catch (err) {
+      // ignore
+    }
+
+    return null;
+  }
+
+  function buildSourceContext() {
+    const utmParams = extractUTMParameters();
+    const refParam = extractRefParameter();
+    const referrer = getReferrer();
+    const currentUrl = getPageUrl();
+    const currentPath = getPagePath();
+    const clickId = getClickIdFromUrl();
+
+    if (utmParams.utm_source) {
+      return {
+        source_type: 'utm',
+        source_name: utmParams.utm_source,
+        source_url: currentUrl,
+        landing_url: currentUrl,
+        landing_path: currentPath,
+        first_touch_at: new Date().toISOString(),
+        click_id: clickId ? clickId.value : null,
+        utm_source: utmParams.utm_source,
+        utm_medium: utmParams.utm_medium,
+        utm_campaign: utmParams.utm_campaign,
+        utm_content: utmParams.utm_content,
+        utm_term: utmParams.utm_term
+      };
+    }
+
+    if (refParam) {
+      return {
+        source_type: 'redirect',
+        source_name: refParam,
+        source_url: currentUrl,
+        landing_url: currentUrl,
+        landing_path: currentPath,
+        first_touch_at: new Date().toISOString(),
+        click_id: refParam,
+        utm_source: null,
+        utm_medium: null,
+        utm_campaign: null,
+        utm_content: null,
+        utm_term: null
+      };
+    }
+
+    if (clickId) {
+      const redirectNames = {
+        gclid: 'google',
+        gbraid: 'google',
+        wbraid: 'google',
+        fbclid: 'facebook',
+        msclkid: 'bing',
+        ttclid: 'tiktok',
+        yclid: 'yandex',
+        cid: 'redirect',
+        click_id: 'redirect'
+      };
+
+      return {
+        source_type: 'redirect',
+        source_name: redirectNames[clickId.key] || clickId.key,
+        source_url: currentUrl,
+        landing_url: currentUrl,
+        landing_path: currentPath,
+        first_touch_at: new Date().toISOString(),
+        click_id: clickId.value,
+        utm_source: null,
+        utm_medium: null,
+        utm_campaign: null,
+        utm_content: null,
+        utm_term: null
+      };
+    }
+
+    if (isExternalReferrer(referrer)) {
+      const referrerHost = sanitizeHostname(new URL(referrer).hostname);
+      return {
+        source_type: 'referrer',
+        source_name: normalizeSourceNameFromHostname(referrerHost),
+        source_url: referrer,
+        landing_url: currentUrl,
+        landing_path: currentPath,
+        first_touch_at: new Date().toISOString(),
+        click_id: null,
+        utm_source: null,
+        utm_medium: null,
+        utm_campaign: null,
+        utm_content: null,
+        utm_term: null
+      };
+    }
+
+    return {
+      source_type: 'direct',
+      source_name: 'Direct',
+      source_url: null,
+      landing_url: currentUrl,
+      landing_path: currentPath,
+      first_touch_at: new Date().toISOString(),
+      click_id: null,
+      utm_source: null,
+      utm_medium: null,
+      utm_campaign: null,
+      utm_content: null,
+      utm_term: null
+    };
+  }
+
+  function getStoredFirstTouch() {
+    const cookie = getCookie(CONFIG.FIRST_TOUCH_COOKIE_NAME);
+    if (!cookie) {
+      return null;
+    }
+
+    const parsed = safeJsonParse(cookie);
+    if (!parsed || !parsed.source_type || !parsed.source_name || !parsed.first_touch_at) {
+      return null;
+    }
+
+    return parsed;
+  }
+
+  function setStoredFirstTouch(firstTouch) {
+    if (!firstTouch) {
+      return;
+    }
+
+    const payload = {
+      source_type: firstTouch.source_type,
+      source_name: firstTouch.source_name,
+      source_url: firstTouch.source_url || null,
+      landing_url: firstTouch.landing_url || null,
+      landing_path: firstTouch.landing_path || null,
+      first_touch_at: firstTouch.first_touch_at || new Date().toISOString(),
+      click_id: firstTouch.click_id || null,
+      utm_source: firstTouch.utm_source || null,
+      utm_medium: firstTouch.utm_medium || null,
+      utm_campaign: firstTouch.utm_campaign || null,
+      utm_content: firstTouch.utm_content || null,
+      utm_term: firstTouch.utm_term || null
+    };
+
+    setCookie(CONFIG.FIRST_TOUCH_COOKIE_NAME, JSON.stringify(payload), CONFIG.COOKIE_EXPIRY_DAYS);
+    state.firstTouch = payload;
+  }
+
+  function ensureFirstTouch() {
+    const existing = getStoredFirstTouch();
+    if (existing) {
+      state.firstTouch = existing;
+      return existing;
+    }
+
+    const current = buildSourceContext();
+    if (current) {
+      setStoredFirstTouch(current);
+      return current;
+    }
+
     return null;
   }
 
@@ -364,7 +619,7 @@
 
   /**
    * Determine source type and source name from utm, ref, referrer, and direct
-   * Priority: utm > ref > referrer > direct
+   * Priority: utm > redirect/ref > referrer > direct
    */
   function getSourceTypeAndName(utmParams, refParam, referrer) {
     const utmSource = utmParams.utm_source;
@@ -380,7 +635,7 @@
     if (refParam) {
       // Ref parameter is next priority
       return {
-        source_type: 'ref',
+        source_type: 'redirect',
         source_name: refParam
       };
     }
@@ -391,7 +646,7 @@
       const sourceName = hostname || referrer;
       return {
         source_type: 'referrer',
-        source_name: sourceName
+        source_name: normalizeSourceNameFromHostname(sourceName)
       };
     }
     
@@ -581,6 +836,7 @@
   function collectEventData() {
     return safeRun(function() {
       touchSession();
+      const firstTouch = state.firstTouch || ensureFirstTouch();
       const browserOS = getBrowserAndOS();
       const utmParams = extractUTMParameters();
       const refParam = extractRefParameter();
@@ -621,6 +877,18 @@
         ref: refParam,
         source_type: source_type,
         source_name: source_name,
+        first_touch_source_type: firstTouch ? firstTouch.source_type : null,
+        first_touch_source_name: firstTouch ? firstTouch.source_name : null,
+        first_touch_source_url: firstTouch ? firstTouch.source_url : null,
+        first_touch_landing_url: firstTouch ? firstTouch.landing_url : null,
+        first_touch_landing_path: firstTouch ? firstTouch.landing_path : null,
+        first_touch_at: firstTouch ? firstTouch.first_touch_at : null,
+        first_touch_click_id: firstTouch ? firstTouch.click_id : null,
+        first_touch_utm_source: firstTouch ? firstTouch.utm_source : null,
+        first_touch_utm_medium: firstTouch ? firstTouch.utm_medium : null,
+        first_touch_utm_campaign: firstTouch ? firstTouch.utm_campaign : null,
+        first_touch_utm_content: firstTouch ? firstTouch.utm_content : null,
+        first_touch_utm_term: firstTouch ? firstTouch.utm_term : null,
         page_load_time: perfData.page_load_time,
         dom_interactive_time: perfData.dom_interactive_time,
         first_paint_time: perfData.first_paint_time,
@@ -799,6 +1067,7 @@
     state.siteHex = siteHex;
     state.uniqueCookie = getOrCreateCookie();
     state.sessionId = getOrCreateSessionId();
+    ensureFirstTouch();
     state.initialized = true;
 
     setupActivityListeners();

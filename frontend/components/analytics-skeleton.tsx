@@ -308,7 +308,7 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
               <div className="mb-8">
                 <p className="label mb-2">Acquisition</p>
                 <h3 className="text-2xl font-serif italic">Where visitors come from</h3>
-                <p className="text-xs text-muted-foreground mt-2">Top 10 • Source name & type (UTM, Ref, Referrer, Direct)</p>
+                <p className="text-xs text-muted-foreground mt-2">Top 10 • Source name & type (UTM, Redirect, Referrer, Direct)</p>
               </div>
               <div className="space-y-6">
                 {referrersList.map((s, i) => (

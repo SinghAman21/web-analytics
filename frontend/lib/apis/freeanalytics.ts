@@ -14,6 +14,21 @@ export interface EventData {
   page_path: string;
   device_type: string;
   screen_res?: string;
+  ref?: string | null;
+  source_type?: string | null;
+  source_name?: string | null;
+  first_touch_source_type?: string | null;
+  first_touch_source_name?: string | null;
+  first_touch_source_url?: string | null;
+  first_touch_landing_url?: string | null;
+  first_touch_landing_path?: string | null;
+  first_touch_at?: string | null;
+  first_touch_click_id?: string | null;
+  first_touch_utm_source?: string | null;
+  first_touch_utm_medium?: string | null;
+  first_touch_utm_campaign?: string | null;
+  first_touch_utm_content?: string | null;
+  first_touch_utm_term?: string | null;
 }
 
 export interface SiteInfo {
