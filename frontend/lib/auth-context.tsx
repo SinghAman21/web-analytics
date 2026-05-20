@@ -31,19 +31,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      // Get token from cookie if it exists
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('auth-token='))
-        ?.split('=')[1];
-
-      // If no token, just set user to null and return
-      if (!token) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
       const response = await fetch(`${API_URL}/api/auth/me`, {
         method: 'GET',
         credentials: 'include',
@@ -51,7 +38,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!response.ok) {
         setUser(null);
-        setIsLoading(false);
         return;
       }
 

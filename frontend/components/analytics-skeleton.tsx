@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { TrendingUp, Lock, Globe, Monitor, Smartphone, Tablet } from 'lucide-react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import AppFooter from '@/components/shared/AppFooter';
 import { ModeToggle } from './toggle';
 import { getAnalytics, type AnalyticsData } from '@/lib/apis/freeanalytics';
@@ -46,17 +46,17 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
 
   // Derived lists from API data (fallback to empty arrays when not present)
   const topPagesList = analytics?.top_pages ?? [];
-  const referrersList: any[] = (analytics as any)?.referrers ?? [];
+  const referrersList = analytics?.referrers ?? [];
   const devicesList = analytics
     ? [
         { name: 'Desktop', share: analytics.desktop_percentage ?? 0, icon: Monitor },
         { name: 'Mobile', share: analytics.mobile_percentage ?? 0, icon: Smartphone },
       ]
     : [];
-  const browsersList: any[] = (analytics as any)?.browsers ?? [];
-  const operatingSystemsList: any[] = (analytics as any)?.operating_systems ?? [];
-  const countriesList: any[] = (analytics as any)?.country_breakdown ?? [];
-  const liveSessions: any[] = (analytics as any)?.live_sessions ?? [];
+  const browsersList = analytics?.browsers ?? [];
+  const operatingSystemsList = analytics?.operating_systems ?? [];
+  const countriesList = analytics?.country_breakdown ?? [];
+  const liveSessions = analytics?.live_sessions ?? [];
 
   const handleGeoClick = () => {
     router.push(`/dashboard/${siteId}?view=geo`);
@@ -184,19 +184,23 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                     <span className="col-span-3 text-right">Views</span>
                     <span className="col-span-3 text-right">Avg Time</span>
                   </div>
-                  {topPagesList.slice(0, 5).map((page: any, i: number) => (
-                    <motion.div
-                      key={page.path}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="grid grid-cols-12 gap-4 py-4 border-b border-border hover:bg-secondary/30 transition-colors -mx-4 px-4"
-                    >
-                      <span className="col-span-6 font-mono text-sm">{page.path}</span>
-                      <span className="col-span-3 font-mono text-sm text-right tabular-nums">{page.views}</span>
-                      <span className="col-span-3 font-mono text-sm text-right tabular-nums">{(page.time as string) ?? '—'}</span>
-                    </motion.div>
-                  ))}
+                  {topPagesList.length === 0 ? (
+                    <div className="py-10 text-sm text-muted-foreground">No pageview data yet.</div>
+                  ) : (
+                    topPagesList.slice(0, 5).map((page, i) => (
+                      <motion.div
+                        key={page.path}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="grid grid-cols-12 gap-4 py-4 border-b border-border hover:bg-secondary/30 transition-colors -mx-4 px-4"
+                      >
+                        <span className="col-span-6 font-mono text-sm">{page.path}</span>
+                        <span className="col-span-3 font-mono text-sm text-right tabular-nums">{page.views}</span>
+                        <span className="col-span-3 font-mono text-sm text-right tabular-nums">{page.time ?? '—'}</span>
+                      </motion.div>
+                    ))
+                  )}
                 </div>
               </section>
 
@@ -238,20 +242,24 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                 <h3 className="text-2xl font-serif italic">Top referrers</h3>
               </div>
               <div className="grid lg:grid-cols-2 gap-8">
-                {referrersList.slice(0, 4).map((ref, i) => (
-                  <motion.div key={ref.source} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
-                    <div className="flex items-baseline justify-between mb-2">
-                      <div className="flex items-baseline gap-3">
-                        <span className="text-sm">{ref.source}</span>
-                        <span className="font-mono text-xs text-muted-foreground">{ref.utm}</span>
+                {referrersList.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">No referrer data yet.</div>
+                ) : (
+                  referrersList.slice(0, 4).map((ref, i) => (
+                    <motion.div key={ref.source} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
+                      <div className="flex items-baseline justify-between mb-2">
+                        <div className="flex items-baseline gap-3">
+                          <span className="text-sm">{ref.source}</span>
+                          <span className="font-mono text-xs text-muted-foreground">{ref.utm}</span>
+                        </div>
+                        <span className="font-mono text-sm tabular-nums">{ref.visits}</span>
                       </div>
-                      <span className="font-mono text-sm tabular-nums">{ref.visits}</span>
-                    </div>
-                    <div className="h-2 bg-secondary rounded-sm overflow-hidden">
-                      <motion.div className="h-full bg-foreground rounded-sm" initial={{ width: 0 }} animate={{ width: `${ref.percentage}%` }} transition={{ delay: 0.3 + i * 0.08, duration: 0.5 }} />
-                    </div>
-                  </motion.div>
-                ))}
+                      <div className="h-2 bg-secondary rounded-sm overflow-hidden">
+                        <motion.div className="h-full bg-foreground rounded-sm" initial={{ width: 0 }} animate={{ width: `${ref.percentage}%` }} transition={{ delay: 0.3 + i * 0.08, duration: 0.5 }} />
+                      </div>
+                    </motion.div>
+                  ))
+                )}
               </div>
             </section>
 
@@ -335,20 +343,24 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
               </div>
               <div className="grid lg:grid-cols-2 gap-12">
                 <div className="space-y-6">
-                  {browsersList.map((b, i) => (
-                    <motion.div key={b.name} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
-                      <div className="flex items-baseline justify-between mb-2">
-                        <span className="text-sm">{b.name}</span>
-                        <div className="flex items-baseline gap-3">
-                          <span className="font-mono text-xs text-muted-foreground">{b.sessions} sessions</span>
-                          <span className="font-mono text-lg font-light tabular-nums">{b.share}%</span>
+                  {browsersList.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No browser data yet.</div>
+                  ) : (
+                    browsersList.map((b, i) => (
+                      <motion.div key={b.name} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
+                        <div className="flex items-baseline justify-between mb-2">
+                          <span className="text-sm">{b.name}</span>
+                          <div className="flex items-baseline gap-3">
+                            <span className="font-mono text-xs text-muted-foreground">{b.sessions} sessions</span>
+                            <span className="font-mono text-lg font-light tabular-nums">{b.share}%</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="h-1.5 bg-secondary rounded-sm overflow-hidden">
-                        <motion.div className="h-full bg-foreground rounded-sm" initial={{ width: 0 }} animate={{ width: `${b.share}%` }} transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }} />
-                      </div>
-                    </motion.div>
-                  ))}
+                        <div className="h-1.5 bg-secondary rounded-sm overflow-hidden">
+                          <motion.div className="h-full bg-foreground rounded-sm" initial={{ width: 0 }} animate={{ width: `${b.share}%` }} transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }} />
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
                 </div>
                 <div className="editorial-card p-8 flex flex-col justify-center">
                   <p className="label mb-4">Most Popular</p>
@@ -370,20 +382,24 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
               </div>
               <div className="grid lg:grid-cols-2 gap-12">
                 <div className="space-y-6">
-                  {operatingSystemsList.map((os, i) => (
-                    <motion.div key={os.name} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
-                      <div className="flex items-baseline justify-between mb-2">
-                        <span className="text-sm">{os.name}</span>
-                        <div className="flex items-baseline gap-3">
-                          <span className="font-mono text-xs text-muted-foreground">{os.sessions} sessions</span>
-                          <span className="font-mono text-lg font-light tabular-nums">{os.share}%</span>
+                  {operatingSystemsList.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">No OS data yet.</div>
+                  ) : (
+                    operatingSystemsList.map((os, i) => (
+                      <motion.div key={os.name} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.08 }}>
+                        <div className="flex items-baseline justify-between mb-2">
+                          <span className="text-sm">{os.name}</span>
+                          <div className="flex items-baseline gap-3">
+                            <span className="font-mono text-xs text-muted-foreground">{os.sessions} sessions</span>
+                            <span className="font-mono text-lg font-light tabular-nums">{os.share}%</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="h-1.5 bg-secondary rounded-sm overflow-hidden">
-                        <motion.div className="h-full bg-foreground rounded-sm" initial={{ width: 0 }} animate={{ width: `${os.share}%` }} transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }} />
-                      </div>
-                    </motion.div>
-                  ))}
+                        <div className="h-1.5 bg-secondary rounded-sm overflow-hidden">
+                          <motion.div className="h-full bg-foreground rounded-sm" initial={{ width: 0 }} animate={{ width: `${os.share}%` }} transition={{ delay: 0.2 + i * 0.1, duration: 0.6 }} />
+                        </div>
+                      </motion.div>
+                    ))
+                  )}
                 </div>
                 <div className="editorial-card p-8 flex flex-col justify-center">
                   <p className="label mb-4">Desktop vs Mobile OS</p>
@@ -424,7 +440,9 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                   <span className="col-span-2 text-right">Share</span>
                   <span className="col-span-2 text-right">7d Trend</span>
                 </div>
-                {countriesList.map((c, i) => {
+                {countriesList.length === 0 ? (
+                  <div className="py-10 text-sm text-muted-foreground">No geography data yet.</div>
+                ) : countriesList.map((c, i) => {
                   const maxVal = Math.max(...(c.sparkline ?? []));
                   return (
                     <motion.div
@@ -474,21 +492,25 @@ export default function AnalyticsDashboard({ siteId }: { siteId: string }) {
                   <span className="col-span-2">OS</span>
                   <span className="col-span-2 text-right">Duration</span>
                 </div>
-                {liveSessions.map((s, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-border last:border-0 hover:bg-secondary/30 transition-colors"
-                  >
-                    <span className="col-span-2 text-sm">{s.location}</span>
-                    <span className="col-span-3 font-mono text-sm">{s.page}</span>
-                    <span className="col-span-3 text-sm text-muted-foreground">{s.browser}</span>
-                    <span className="col-span-2 text-sm text-muted-foreground">{s.os}</span>
-                    <span className="col-span-2 font-mono text-sm text-right tabular-nums">{s.time}</span>
-                  </motion.div>
-                ))}
+                {liveSessions.length === 0 ? (
+                  <div className="px-6 py-10 text-sm text-muted-foreground">No live sessions in the last 5 minutes.</div>
+                ) : (
+                  liveSessions.map((s, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-border last:border-0 hover:bg-secondary/30 transition-colors"
+                    >
+                      <span className="col-span-2 text-sm">{s.location}</span>
+                      <span className="col-span-3 font-mono text-sm">{s.page}</span>
+                      <span className="col-span-3 text-sm text-muted-foreground">{s.browser}</span>
+                      <span className="col-span-2 text-sm text-muted-foreground">{s.os}</span>
+                      <span className="col-span-2 font-mono text-sm text-right tabular-nums">{s.time}</span>
+                    </motion.div>
+                  ))
+                )}
               </div>
             </section>
             <ProTeaser label="Real-time Geo Map + Live session locations available on Pro" showUpgrade />

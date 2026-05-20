@@ -27,6 +27,37 @@ export interface SiteInfo {
 export interface TopPage {
   path: string;
   views: number;
+  bounce?: number;
+  time?: string;
+  exitRate?: number;
+}
+
+export interface RankedBreakdownItem {
+  name: string;
+  sessions: number;
+  share: number;
+}
+
+export interface ReferrerBreakdownItem {
+  source: string;
+  utm: string;
+  visits: number;
+  percentage: number;
+}
+
+export interface CountryBreakdownItem {
+  name: string;
+  visitors: number;
+  percentage: number;
+  sparkline: number[];
+}
+
+export interface LiveSessionItem {
+  location: string;
+  page: string;
+  browser: string;
+  os: string;
+  time: string;
 }
 
 export interface DailyData {
@@ -52,6 +83,12 @@ export interface AnalyticsData {
   device_breakdown: DeviceBreakdown;
   mobile_percentage: number;
   desktop_percentage: number;
+  referrers: ReferrerBreakdownItem[];
+  browsers: RankedBreakdownItem[];
+  operating_systems: RankedBreakdownItem[];
+  country_breakdown: CountryBreakdownItem[];
+  live_users: number;
+  live_sessions: LiveSessionItem[];
   daily_data: DailyData[];
   generated_at: string;
 }

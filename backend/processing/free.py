@@ -4,12 +4,82 @@ Fetches raw events from free_sites_raw_event table and processes them into analy
 """
 
 from core.config import supabase
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict
 from collections import defaultdict
+from urllib.parse import urlparse
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_event_time(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+
+    try:
+        parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        if parsed.tzinfo is not None:
+            return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        return parsed
+    except (ValueError, AttributeError):
+        return None
+
+
+def _safe_name(value: Optional[str], fallback: str = 'Unknown') -> str:
+    if value and str(value).strip():
+        return str(value).strip()
+    return fallback
+
+
+def _normalize_referrer(event: Dict) -> tuple[str, str]:
+    utm_source = _safe_name(event.get('utm_source'), '')
+    utm_medium = _safe_name(event.get('utm_medium'), 'none')
+    utm_campaign = _safe_name(event.get('utm_campaign'), '')
+    referrer = _safe_name(event.get('referrer'), '')
+
+    if utm_source:
+        source = utm_source
+    elif referrer and referrer not in {'direct', '(direct)', 'none', 'null'}:
+        try:
+            source = urlparse(referrer).hostname or referrer
+        except Exception:
+            source = referrer
+    else:
+        source = 'Direct'
+
+    utm_parts = [part for part in [utm_medium if utm_medium != 'none' else '', utm_campaign] if part]
+    utm_value = ' / '.join(utm_parts) if utm_parts else utm_medium
+    return source, utm_value
+
+
+def _format_live_age(event_time: Optional[datetime]) -> str:
+    if not event_time:
+        return 'just now'
+
+    delta = datetime.utcnow() - event_time.replace(tzinfo=None)
+    seconds = max(int(delta.total_seconds()), 0)
+    if seconds < 60:
+        return f'{seconds}s'
+
+    minutes = seconds // 60
+    if minutes < 60:
+        return f'{minutes}m'
+
+    hours = minutes // 60
+    return f'{hours}h'
+
+
+def _build_ranked_breakdown(counter: Dict[str, set], total: int, limit: int = 10) -> List[Dict]:
+    items = []
+    for name, sessions in sorted(counter.items(), key=lambda item: len(item[1]), reverse=True)[:limit]:
+        count = len(sessions)
+        items.append({
+            'name': name,
+            'sessions': count,
+            'share': round((count / total * 100)) if total > 0 else 0,
+        })
+    return items
 
 
 def get_raw_events(site_hex: str, days: int = 30) -> List[Dict]:
@@ -85,6 +155,12 @@ def process_analytics(site_hex: str, days: int = 30) -> Dict:
                 "device_breakdown": {},
                 "mobile_percentage": 0,
                 "desktop_percentage": 0,
+                "referrers": [],
+                "browsers": [],
+                "operating_systems": [],
+                "country_breakdown": [],
+                "live_users": 0,
+                "live_sessions": [],
                 "daily_data": [],
                 "generated_at": datetime.utcnow().isoformat()
             }
@@ -133,11 +209,10 @@ def process_analytics(site_hex: str, days: int = 30) -> Dict:
         # Group by date for daily chart
         daily_views = defaultdict(int)
         for event in events:
-            event_time_str = event.get("event_time")
-            if event_time_str:
+            event_dt = _parse_event_time(event.get("event_time"))
+            if event_dt:
                 # Parse ISO format timestamp and extract date
                 try:
-                    event_dt = datetime.fromisoformat(event_time_str.replace('Z', '+00:00'))
                     date_key = event_dt.strftime("%Y-%m-%d")
                     daily_views[date_key] += 1
                 except (ValueError, AttributeError):
@@ -161,17 +236,108 @@ def process_analytics(site_hex: str, days: int = 30) -> Dict:
             })
             current_day += timedelta(days=1)
         
-        # Country breakdown (top countries by views)
-        countries = defaultdict(int)
+        # Country breakdown (top countries by unique sessions)
+        countries = defaultdict(set)
         for event in events:
             country = (event.get("country") or "Unknown")
-            countries[country] += 1
+            session_id = _safe_name(event.get("session_id"), '')
+            if session_id:
+                countries[country].add(session_id)
 
-        total_country_views = sum(countries.values()) if countries else 0
+        total_country_views = sum(len(session_ids) for session_ids in countries.values()) if countries else 0
         country_breakdown = []
-        for name, cnt in sorted(countries.items(), key=lambda x: x[1], reverse=True)[:10]:
+        country_trends = defaultdict(lambda: defaultdict(int))
+        live_cutoff = datetime.utcnow() - timedelta(minutes=5)
+        live_sessions_by_id: Dict[str, Dict] = {}
+
+        referrers = defaultdict(set)
+        browsers = defaultdict(set)
+        operating_systems = defaultdict(set)
+
+        for event in events:
+            event_dt = _parse_event_time(event.get("event_time"))
+            if event_dt:
+                event_date_key = event_dt.strftime("%Y-%m-%d")
+                country_key = _safe_name(event.get("country"))
+                country_trends[country_key][event_date_key] += 1
+
+                if event_dt >= live_cutoff:
+                    session_id = _safe_name(event.get("session_id"), '')
+                    if session_id:
+                        existing = live_sessions_by_id.get(session_id)
+                        if not existing or (existing.get('_event_dt') and event_dt > existing['_event_dt']):
+                            live_sessions_by_id[session_id] = {
+                                '_event_dt': event_dt,
+                                'location': ', '.join([part for part in [event.get('city'), event.get('region'), event.get('country')] if part]) or 'Unknown',
+                                'page': event.get('page_path') or '/',
+                                'browser': ' '.join([part for part in [_safe_name(event.get('browser'), ''), _safe_name(event.get('browser_version'), '')] if part]).strip() or 'Unknown',
+                                'os': ' '.join([part for part in [_safe_name(event.get('os'), ''), _safe_name(event.get('os_version'), '')] if part]).strip() or 'Unknown',
+                                'time': _format_live_age(event_dt),
+                            }
+
+            referrer_source, referrer_utm = _normalize_referrer(event)
+            session_id = _safe_name(event.get("session_id"), '')
+            if session_id:
+                referrers[(referrer_source, referrer_utm)].add(session_id)
+
+            browser_name = ' '.join([part for part in [_safe_name(event.get("browser"), 'Unknown'), _safe_name(event.get("browser_version"), '')] if part]).strip()
+            if session_id:
+                browsers[browser_name].add(session_id)
+
+            os_name = ' '.join([part for part in [_safe_name(event.get("os"), 'Unknown'), _safe_name(event.get("os_version"), '')] if part]).strip()
+            if session_id:
+                operating_systems[os_name].add(session_id)
+
+        total_referrer_visits = sum(len(session_ids) for session_ids in referrers.values()) or 0
+        referrer_breakdown = []
+        for (source, utm), session_ids in sorted(referrers.items(), key=lambda item: len(item[1]), reverse=True)[:10]:
+            visits = len(session_ids)
+            referrer_breakdown.append({
+                'source': source,
+                'utm': utm,
+                'visits': visits,
+                'percentage': round((visits / total_referrer_visits * 100)) if total_referrer_visits > 0 else 0,
+            })
+
+        total_browser_visits = sum(len(session_ids) for session_ids in browsers.values()) or 0
+        browser_breakdown = []
+        for item in _build_ranked_breakdown(browsers, total_browser_visits, limit=10):
+            browser_breakdown.append({
+                'name': item['name'],
+                'sessions': item['sessions'],
+                'share': item['share'],
+            })
+
+        total_os_visits = sum(len(session_ids) for session_ids in operating_systems.values()) or 0
+        operating_system_breakdown = []
+        for item in _build_ranked_breakdown(operating_systems, total_os_visits, limit=10):
+            operating_system_breakdown.append({
+                'name': item['name'],
+                'sessions': item['sessions'],
+                'share': item['share'],
+            })
+
+        live_sessions = list(live_sessions_by_id.values())
+        live_sessions.sort(key=lambda item: item['_event_dt'], reverse=True)
+        live_sessions_payload = [
+            {
+                'location': item['location'],
+                'page': item['page'],
+                'browser': item['browser'],
+                'os': item['os'],
+                'time': item['time'],
+            }
+            for item in live_sessions
+        ]
+
+        for name, session_ids in sorted(countries.items(), key=lambda x: len(x[1]), reverse=True)[:10]:
+            cnt = len(session_ids)
             pct = round((cnt / total_country_views * 100)) if total_country_views > 0 else 0
-            country_breakdown.append({"name": name, "visitors": cnt, "percentage": pct, "sparkline": []})
+            sparkline = []
+            for i in range(6, -1, -1):
+                date_key = (datetime.utcnow() - timedelta(days=i)).strftime("%Y-%m-%d")
+                sparkline.append(country_trends[name].get(date_key, 0))
+            country_breakdown.append({"name": name, "visitors": cnt, "percentage": pct, "sparkline": sparkline})
 
         return {
             "site_hex": site_hex,
@@ -185,8 +351,13 @@ def process_analytics(site_hex: str, days: int = 30) -> Dict:
             "device_breakdown": device_breakdown,
             "mobile_percentage": mobile_percentage,
             "desktop_percentage": desktop_percentage,
-            "daily_data": daily_data,
+            "referrers": referrer_breakdown,
+            "browsers": browser_breakdown,
+            "operating_systems": operating_system_breakdown,
             "country_breakdown": country_breakdown,
+            "live_users": len(live_sessions_payload),
+            "live_sessions": live_sessions_payload,
+            "daily_data": daily_data,
             "generated_at": datetime.utcnow().isoformat()
         }
     

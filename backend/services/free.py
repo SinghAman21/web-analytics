@@ -198,7 +198,7 @@ def log_free_event(event_data: dict, ip_address: Optional[str] = None) -> dict:
             "language": event_data.get("language"),
             "timezone": event_data.get("timezone"),
             "event_type": event_data.get("event_type", "page_view"),
-            "event_time": event_data.get("event_time", datetime.utcnow().isoformat()),
+            "event_time": event_data.get("event_time") or datetime.utcnow().isoformat(),
             "ip_hash": ip_hash,
         }
         

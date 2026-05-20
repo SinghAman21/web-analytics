@@ -45,8 +45,44 @@ class EventData(BaseModel):
     session_id: str = Field(..., description="Per-tab/session identifier")
     page_url: Optional[str] = Field(None, description="Full current page URL", examples=["https://example.com/pricing"])
     page_path: str = Field(..., description="Current page path", examples=["/pricing"])
+    page_title: Optional[str] = Field(None, description="Document title")
+    page_hostname: Optional[str] = Field(None, description="Hostname of the current page")
     device_type: str = Field(..., description="Device category", examples=["desktop", "mobile", "tablet"])
+    viewport_res: Optional[str] = Field(None, description="Viewport resolution", examples=["981x933"])
     screen_res: Optional[str] = Field(None, description="Screen resolution", examples=["1920x1080"])
+    referrer: Optional[str] = Field(None, description="Document referrer or tracking source")
+    browser: Optional[str] = Field(None, description="Browser name")
+    browser_version: Optional[str] = Field(None, description="Browser version")
+    os: Optional[str] = Field(None, description="Operating system name")
+    os_version: Optional[str] = Field(None, description="Operating system version")
+    utm_source: Optional[str] = Field(None, description="UTM source")
+    utm_medium: Optional[str] = Field(None, description="UTM medium")
+    utm_campaign: Optional[str] = Field(None, description="UTM campaign")
+    utm_content: Optional[str] = Field(None, description="UTM content")
+    utm_term: Optional[str] = Field(None, description="UTM term")
+    page_load_time: Optional[int] = Field(None, description="Page load time in milliseconds")
+    dom_interactive_time: Optional[int] = Field(None, description="DOM interactive time in milliseconds")
+    first_paint_time: Optional[int] = Field(None, description="First paint time in milliseconds")
+    first_contentful_paint_time: Optional[int] = Field(None, description="First contentful paint time in milliseconds")
+    interaction_count: int = Field(0, description="Number of user interactions")
+    scroll_depth: Optional[int] = Field(None, ge=0, le=100, description="Scroll depth percentage")
+    is_bounce: bool = Field(False, description="Whether the session is a bounce")
+    country: Optional[str] = Field(None, description="Country name")
+    country_code: Optional[str] = Field(None, description="Country code")
+    region: Optional[str] = Field(None, description="Region or state")
+    city: Optional[str] = Field(None, description="City")
+    latitude: Optional[float] = Field(None, description="Latitude")
+    longitude: Optional[float] = Field(None, description="Longitude")
+    isp: Optional[str] = Field(None, description="Internet service provider")
+    connection_type: Optional[str] = Field(None, description="Connection type")
+    connection_effective_type: Optional[str] = Field(None, description="Effective connection type")
+    language: Optional[str] = Field(None, description="Browser language")
+    timezone: Optional[str] = Field(None, description="Client timezone")
+    event_type: str = Field("page_view", description="Analytics event type")
+    event_time: Optional[str] = Field(None, description="Event timestamp in ISO format")
+
+    class Config:
+        extra = "allow"
 
 
 class ErrorResponse(BaseModel):
@@ -143,6 +179,12 @@ class AnalyticsData(BaseModel):
     device_breakdown: Dict[str, int]
     mobile_percentage: int
     desktop_percentage: int
+    referrers: List[Dict[str, Any]]
+    browsers: List[Dict[str, Any]]
+    operating_systems: List[Dict[str, Any]]
+    country_breakdown: List[Dict[str, Any]]
+    live_users: int
+    live_sessions: List[Dict[str, Any]]
     daily_data: List[DailyDataPoint]
     generated_at: str
 

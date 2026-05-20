@@ -29,9 +29,7 @@ export default function GeoDashboard({ siteId }: { siteId: string }) {
     };
   }, [siteId]);
 
-  // const countries = analytics && analytics.country_breakdown && analytics.country_breakdown.length > 0
-  //   ? analytics.country_breakdown.slice(0, 10)
-  //   : [];
+  const countries = analytics?.country_breakdown ?? [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,33 +69,43 @@ export default function GeoDashboard({ siteId }: { siteId: string }) {
           <section>
             <p className="label mb-8">By Country</p>
             <div className="space-y-5">
-              {/* {countries.map((country, i) => (
-                <motion.div
-                  key={country.name}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: i * 0.08 }}
-                >
-                  <div className="flex items-baseline justify-between mb-2">
-                    <div className="flex items-baseline gap-4">
-                      <span className="font-mono text-xs text-muted-foreground w-6">{String(i + 1).padStart(2, '0')}</span>
-                      <span className="text-sm">{country.name}</span>
-                    </div>
-                    <div className="flex items-baseline gap-4">
-                      <span className="font-mono text-sm tabular-nums">{country.visitors.toLocaleString()}</span>
-                      <span className="font-mono text-xs text-muted-foreground w-8 text-right">{country.percentage}%</span>
-                    </div>
-                  </div>
-                  <div className="ml-10 h-2 bg-secondary rounded-sm overflow-hidden">
+              {countries.length === 0 ? (
+                <div className="editorial-card p-6 text-sm text-muted-foreground">
+                  No geography data yet.
+                </div>
+              ) : (
+                countries.map((country, i) => {
+                  const maxVal = Math.max(...(country.sparkline ?? []), 1);
+                  return (
                     <motion.div
-                      className="h-full bg-foreground rounded-sm"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${country.percentage}%` }}
-                      transition={{ delay: 0.3 + i * 0.08, duration: 0.5 }}
-                    />
-                  </div>
-                </motion.div>
-              ))} */}
+                      key={country.name}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: i * 0.08 }}
+                    >
+                      <div className="flex items-baseline justify-between mb-2">
+                        <div className="flex items-baseline gap-4">
+                          <span className="font-mono text-xs text-muted-foreground w-6">{String(i + 1).padStart(2, '0')}</span>
+                          <span className="text-sm">{country.name}</span>
+                        </div>
+                        <div className="flex items-baseline gap-4">
+                          <span className="font-mono text-sm tabular-nums">{country.visitors.toLocaleString()}</span>
+                          <span className="font-mono text-xs text-muted-foreground w-8 text-right">{country.percentage}%</span>
+                        </div>
+                      </div>
+                      <div className="ml-10 flex items-end gap-[2px] h-6 justify-end">
+                        {country.sparkline.map((value, index) => (
+                          <div
+                            key={index}
+                            className="w-1 bg-foreground/40 rounded-sm"
+                            style={{ height: `${(value / maxVal) * 100}%` }}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
             </div>
           </section>
 
