@@ -100,10 +100,10 @@ CREATE INDEX IF NOT EXISTS idx_free_sites_raw_event_site_unique_cookie
 CREATE INDEX IF NOT EXISTS idx_free_sites_raw_event_site_event_type
 	ON free_sites_raw_event (site_hex, event_type, event_time DESC);
 
--- 4. Add foreign key constraint to free_sites table (uncomment if free_sites table exists)
--- ALTER TABLE free_sites_raw_event 
--- ADD CONSTRAINT fk_free_sites_raw_event_site_hex 
--- FOREIGN KEY (site_hex) REFERENCES free_sites(hex_share_id) ON DELETE CASCADE;
+-- 4. Add foreign key constraint to free_sites table
+ALTER TABLE free_sites_raw_event
+ADD CONSTRAINT fk_free_sites_raw_event_site_hex
+FOREIGN KEY (site_hex) REFERENCES free_sites(hex_share_id) ON DELETE CASCADE;
 
 COMMIT;
 

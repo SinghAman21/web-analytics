@@ -23,13 +23,13 @@ router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 
 def _set_session_cookie(response: Response, session_token: str) -> None:
-    secure_cookie = os.getenv("ENV") == "production"
+    is_production = os.getenv("ENV") == "production"
     response.set_cookie(
         key="auth-token",
         value=session_token,
         httponly=True,
-        secure=secure_cookie,
-        samesite="lax",
+        secure=is_production,
+        samesite="none" if is_production else "lax",
         path="/",
         max_age=15 * 24 * 60 * 60,
     )
