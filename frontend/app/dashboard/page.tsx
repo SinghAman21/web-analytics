@@ -17,11 +17,13 @@ const currentTier = {
 };
 
 export default function DashboardOverview() {
-  const { logout, user, isLoading: authLoading } = useAuth();
+  const { logout, user } = useAuth();
   const [sites, setSites] = useState<FreeSite[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchSites = async () => {
       try {
         setLoading(true);
@@ -35,16 +37,8 @@ export default function DashboardOverview() {
       }
     };
 
-    if (!authLoading && user) {
-      fetchSites();
-      return;
-    }
-
-    if (!authLoading && !user) {
-      setLoading(false);
-      setSites([]);
-    }
-  }, [authLoading, user]);
+    void fetchSites();
+  }, [user]);
 
   const dashboardStats = useMemo(() => {
     const totalSites = sites.length;

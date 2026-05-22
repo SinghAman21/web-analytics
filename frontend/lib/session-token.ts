@@ -1,21 +1,27 @@
 const SESSION_TOKEN_KEY = 'auth-session-token';
 const SESSION_MARKER_COOKIE = 'auth-session';
+const SESSION_MAX_AGE_SEC = 15 * 24 * 60 * 60;
 
 export function getSessionToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return sessionStorage.getItem(SESSION_TOKEN_KEY);
+  return localStorage.getItem(SESSION_TOKEN_KEY);
+}
+
+export function setSessionMarker(): void {
+  if (typeof window === 'undefined') return;
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${SESSION_MARKER_COOKIE}=1; Path=/; Max-Age=${SESSION_MAX_AGE_SEC}; SameSite=Lax${secure}`;
 }
 
 export function setSessionToken(token: string): void {
   if (typeof window === 'undefined') return;
-  sessionStorage.setItem(SESSION_TOKEN_KEY, token);
-  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
-  document.cookie = `${SESSION_MARKER_COOKIE}=1; Path=/; SameSite=Lax${secure}`;
+  localStorage.setItem(SESSION_TOKEN_KEY, token);
+  setSessionMarker();
 }
 
 export function clearSessionToken(): void {
   if (typeof window === 'undefined') return;
-  sessionStorage.removeItem(SESSION_TOKEN_KEY);
+  localStorage.removeItem(SESSION_TOKEN_KEY);
   document.cookie = `${SESSION_MARKER_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 

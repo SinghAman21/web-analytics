@@ -6,6 +6,7 @@ import {
   clearSessionToken,
   getAuthHeaders,
   getSessionToken,
+  setSessionMarker,
   setSessionToken,
 } from '@/lib/session-token';
 
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = useCallback(async () => {
     const token = getSessionToken();
     if (!token) {
+      clearSessionToken();
       setUser(null);
       setIsLoading(false);
       return;
@@ -56,9 +58,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
+      setSessionMarker();
       setUser(data.data);
     } catch (error) {
       console.error('Auth check failed:', error);
+      clearSessionToken();
       setUser(null);
     } finally {
       setIsLoading(false);
