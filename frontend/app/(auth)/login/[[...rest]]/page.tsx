@@ -158,7 +158,7 @@ export default function LoginPage() {
                   className="rounded-2xl border border-border bg-secondary/40 p-4"
                 >
                   <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Session</div>
-                  <div className="mt-2 text-sm leading-6 text-foreground/90">Stored as an HttpOnly cookie and reused on every request.</div>
+                  <div className="mt-2 text-sm leading-6 text-foreground/90">Stored in your browser session and sent as a Bearer token on each request.</div>
                 </motion.div>
                 <motion.div
                   whileHover={{ y: -2 }}

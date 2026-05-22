@@ -2,6 +2,12 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  clearSessionToken,
+  getAuthHeaders,
+  getSessionToken,
+  setSessionToken,
+} from '@/lib/session-token';
 
 interface User {
   id: number;
@@ -30,13 +36,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   const refreshUser = useCallback(async () => {
+    const token = getSessionToken();
+    if (!token) {
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/auth/me`, {
         method: 'GET',
-        credentials: 'include',
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
+        clearSessionToken();
         setUser(null);
         return;
       }
@@ -55,10 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch(`${API_URL}/api/auth/google`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       });
 
@@ -68,6 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await response.json();
+      if (!data.session_token) {
+        throw new Error('Google sign in did not return a session token');
+      }
+
+      setSessionToken(data.session_token);
       setUser(data.user);
       router.replace('/dashboard');
     } catch (error) {
@@ -80,12 +96,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await fetch(`${API_URL}/api/auth/logout`, {
         method: 'POST',
-        credentials: 'include',
+        headers: getAuthHeaders(),
       });
-      setUser(null);
-      router.replace('/');
     } catch (error) {
       console.error('Logout failed:', error);
+    } finally {
+      clearSessionToken();
+      setUser(null);
+      router.replace('/');
     }
   }, [router]);
 

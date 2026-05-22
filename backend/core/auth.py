@@ -211,9 +211,12 @@ def get_current_user(
 
 
 def extract_session_token(request: Request, credentials: Optional[HTTPAuthorizationCredentials] = None) -> Optional[str]:
-	"""Read the session token from either a bearer header or the auth cookie."""
+	"""Read the session token from bearer header or the auth cookie."""
 	if credentials and credentials.scheme.lower() == "bearer":
 		return credentials.credentials
+	auth_header = request.headers.get("authorization")
+	if auth_header and auth_header.lower().startswith("bearer "):
+		return auth_header.split(" ", 1)[1].strip()
 	return request.cookies.get("auth-token")
 
 

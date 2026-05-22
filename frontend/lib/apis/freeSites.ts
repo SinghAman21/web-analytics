@@ -1,3 +1,5 @@
+import { getAuthHeaders } from '@/lib/session-token';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface FreeSite {
@@ -27,10 +29,7 @@ interface FreeSiteCreateResponse {
 export async function getFreeSites(): Promise<FreeSite[]> {
   const response = await fetch(`${API_URL}/api/free/free-sites`, {
     method: 'GET',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
   });
 
   if (!response.ok) {
@@ -51,10 +50,7 @@ export async function getFreeSites(): Promise<FreeSite[]> {
 export async function createFreeSite(site_name: string, site_url: string): Promise<FreeSite> {
   const response = await fetch(`${API_URL}/api/free/free-sites`, {
     method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: getAuthHeaders(),
     body: JSON.stringify({ site_name, site_url }),
   });
 

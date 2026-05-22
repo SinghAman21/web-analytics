@@ -6,7 +6,9 @@ const protectedRoutes = ['/dashboard', '/account'];
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
-  const hasSession = Boolean(request.cookies.get('auth-token')?.value);
+  const hasSession =
+    Boolean(request.cookies.get('auth-session')?.value) ||
+    Boolean(request.cookies.get('auth-token')?.value);
 
   // Redirect unauthenticated users away from protected routes
   if (isProtectedRoute && !hasSession) {

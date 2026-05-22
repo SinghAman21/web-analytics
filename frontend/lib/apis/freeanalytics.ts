@@ -2,6 +2,8 @@
  * API interfaces and functions for Free Analytics
  */
 
+import { getAuthHeaders } from '@/lib/session-token';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // ============ Interfaces ============
@@ -164,10 +166,7 @@ export async function getAnalytics(hexId: string): Promise<AnalyticsData> {
   try {
     const response = await fetch(`${API_URL}/api/free/analytics/${hexId}`, {
       method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
     });
 
     if (!response.ok) {

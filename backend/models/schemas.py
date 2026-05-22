@@ -274,4 +274,5 @@ class GoogleAuthResponse(BaseModel):
     """Google OAuth login response."""
 
     authenticated: bool
+    session_token: str = Field(..., description="Session token for authenticated requests")
     user: SignedInUser

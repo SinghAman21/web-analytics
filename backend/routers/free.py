@@ -228,6 +228,7 @@ async def google_login(request: GoogleAuthRequest, response: Response):
 
             return {
                 "authenticated": True,
+                "session_token": session_token,
                 "user": signed_in_user,
             }
 

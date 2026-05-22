@@ -45,8 +45,8 @@ app = FastAPI(
 # Middleware stack
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
-    TrustedHostMiddleware, 
-    allowed_hosts=["localhost", "127.0.0.1", "*.vercel.app"]
+    TrustedHostMiddleware,
+    allowed_hosts=["localhost", "127.0.0.1", "*.vercel.app", "*.ngrok-free.app", "*.ngrok-free.dev"],
 )
 frontend_origin = os.getenv("FRONTEND_URL", "https://pulsev0.vercel.app")
 allowed_origins = list({
