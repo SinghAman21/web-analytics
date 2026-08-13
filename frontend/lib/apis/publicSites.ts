@@ -6,8 +6,6 @@ export interface PublicSite {
   created_at: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
 /**
  * Generate a random 12-character alphanumeric hex code
  */
@@ -24,11 +22,11 @@ function generateHexCode(): string {
 }
 
 /**
- * Fetch all public ultrafree sites from the backend
+ * Fetch all public ultrafree sites from the backend (gRPC ListSites via gateway)
  */
 export async function getPublicSites(): Promise<PublicSite[]> {
   try {
-    const response = await fetch(`${API_URL}/api/ultrafree`, {
+    const response = await fetch('/api/grpc/sites', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -49,7 +47,7 @@ export async function getPublicSites(): Promise<PublicSite[]> {
 }
 
 /**
- * Create a new ultrafree public site in Supabase
+ * Create a new ultrafree public site in Supabase (gRPC CreateSite via gateway)
  */
 export async function createPublicSite(
   siteName: string,
@@ -58,7 +56,7 @@ export async function createPublicSite(
   const hexId = generateHexCode();
   
   try {
-    const response = await fetch(`${API_URL}/api/ultrafree`, {
+    const response = await fetch('/api/grpc/sites', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

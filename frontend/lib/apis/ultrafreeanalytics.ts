@@ -1,8 +1,8 @@
 /**
  * API interfaces and functions for Ultrafree Analytics
+ * Read paths are served through the Next.js gRPC gateway (/api/grpc/*),
+ * which forwards to the backend gRPC server (AnalyticsService).
  */
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // ============ Interfaces ============
 
@@ -69,13 +69,13 @@ export interface EventLogResponse {
 // ============ API Functions ============
 
 /**
- * Get site information by hex ID
+ * Get site information by hex ID (gRPC GetSite via gateway)
  * @param hexId - The hex share ID of the site
  * @returns Site information
  */
 export async function getSiteInfo(hexId: string): Promise<SiteInfo> {
   try {
-    const response = await fetch(`${API_URL}/api/ultrafree/${hexId}`, {
+    const response = await fetch(`/api/grpc/sites/${hexId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -102,14 +102,14 @@ export async function getSiteInfo(hexId: string): Promise<SiteInfo> {
 }
 
 /**
- * Get analytics data for a specific site by hex ID
+ * Get analytics data for a specific site by hex ID (gRPC GetAnalytics via gateway)
  * Ultrafree analytics always shows last 30 days of data
  * @param hexId - The hex share ID of the site
  * @returns Analytics data for the site
  */
 export async function getAnalytics(hexId: string): Promise<AnalyticsData> {
   try {
-    const response = await fetch(`${API_URL}/api/analytics/${hexId}`, {
+    const response = await fetch(`/api/grpc/analytics/${hexId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ export async function getAnalytics(hexId: string): Promise<AnalyticsData> {
  */
 export async function logEvent(event: EventData): Promise<EventLogResponse> {
   try {
-    const response = await fetch(`${API_URL}/api/ping`, {
+    const response = await fetch('/api/collect', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

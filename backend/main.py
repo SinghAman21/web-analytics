@@ -1,4 +1,6 @@
+import logging
 import os
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, Request, Response
@@ -6,10 +8,29 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 
+from grpc_server import build_grpc_server
 from models.schemas import ErrorResponse, HealthResponse, RootResponse
 from routers.free import router as auth_router
 from routers.ultrafree import router as ultrafree_router
 from routers.free_analytics import router as free_analytics_router
+
+logger = logging.getLogger(__name__)
+
+GRPC_PORT = int(os.getenv("GRPC_PORT", "50051"))
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start the async gRPC server alongside the HTTP app and shut it down cleanly."""
+    grpc_server = await build_grpc_server()
+    grpc_server.add_insecure_port(f"0.0.0.0:{GRPC_PORT}")
+    await grpc_server.start()
+    logger.info("gRPC server started on 0.0.0.0:%s", GRPC_PORT)
+    try:
+        yield
+    finally:
+        await grpc_server.stop(grace=5)
+        logger.info("gRPC server stopped")
 
 TAGS_METADATA = [
     {
@@ -40,6 +61,7 @@ app = FastAPI(
     description="API for website event tracking, public site setup, and analytics reporting.",
     version="1.0.0",
     openapi_tags=TAGS_METADATA,
+    lifespan=lifespan,
 )
 
 # Middleware stack

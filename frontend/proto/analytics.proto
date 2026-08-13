@@ -1,0 +1,175 @@
+syntax = "proto3";
+
+package analytics;
+
+option go_package = "github.com/web-analytics/api/analytics";
+
+// AnalyticsService exposes the core web-analytics RPCs.
+// Browser clients should reach this via a gRPC-Web / Connect gateway;
+// server-to-server and Node.js clients can call it directly.
+service AnalyticsService {
+  // LogEvent ingests a single tracking event (equivalent of POST /api/ping).
+  rpc LogEvent(LogEventRequest) returns (LogEventResponse);
+
+  // GetSite fetches a public site by its 12-char hex share ID.
+  rpc GetSite(GetSiteRequest) returns (Site);
+
+  // CreateSite creates a new public ultrafree site.
+  rpc CreateSite(CreateSiteRequest) returns (Site);
+
+  // ListSites paginates over public sites, newest first.
+  rpc ListSites(ListSitesRequest) returns (ListSitesResponse);
+
+  // GetAnalytics returns processed analytics for a public site.
+  rpc GetAnalytics(GetAnalyticsRequest) returns (Analytics);
+
+  // HealthCheck is a simple liveness probe for the gRPC server.
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// ============================ Events ============================
+
+message EventData {
+  string site_hex = 1;
+  string unique_cookie = 2;
+  string session_id = 3;
+  optional string page_url = 4;
+  string page_path = 5;
+  optional string page_title = 6;
+  optional string page_hostname = 7;
+  string device_type = 8;
+  optional string viewport_res = 9;
+  optional string screen_res = 10;
+  optional string referrer = 11;
+  optional string browser = 12;
+  optional string browser_version = 13;
+  optional string os = 14;
+  optional string os_version = 15;
+  optional string utm_source = 16;
+  optional string utm_medium = 17;
+  optional string utm_campaign = 18;
+  optional string utm_content = 19;
+  optional string utm_term = 20;
+  optional string ref = 21;
+  optional string source_type = 22;
+  optional string source_name = 23;
+  optional string first_touch_source_type = 24;
+  optional string first_touch_source_name = 25;
+  optional string first_touch_source_url = 26;
+  optional string first_touch_landing_url = 27;
+  optional string first_touch_landing_path = 28;
+  optional string first_touch_at = 29;
+  optional string first_touch_click_id = 30;
+  optional string first_touch_utm_source = 31;
+  optional string first_touch_utm_medium = 32;
+  optional string first_touch_utm_campaign = 33;
+  optional string first_touch_utm_content = 34;
+  optional string first_touch_utm_term = 35;
+  int32 page_load_time = 36;
+  int32 dom_interactive_time = 37;
+  int32 first_paint_time = 38;
+  int32 first_contentful_paint_time = 39;
+  int32 interaction_count = 40;
+  optional int32 scroll_depth = 41;
+  bool is_bounce = 42;
+  optional string country = 43;
+  optional string country_code = 44;
+  optional string region = 45;
+  optional string city = 46;
+  optional double latitude = 47;
+  optional double longitude = 48;
+  optional string isp = 49;
+  optional string connection_type = 50;
+  optional string connection_effective_type = 51;
+  optional string language = 52;
+  optional string timezone = 53;
+  string event_type = 54;
+  optional string event_time = 55;
+}
+
+message LogEventRequest {
+  EventData event = 1;
+  optional string client_ip = 2;
+}
+
+message LogEventResponse {
+  bool success = 1;
+  string message = 2;
+  string site_hex = 3;
+  int64 event_id = 4;
+}
+
+// ============================ Sites ============================
+
+message Site {
+  int64 id = 1;
+  string hex_share_id = 2;
+  string name = 3;
+  string site_url = 4;
+  string created_at = 5;
+}
+
+message GetSiteRequest {
+  string hex_share_id = 1;
+}
+
+message CreateSiteRequest {
+  string site_name = 1;
+  string site_url = 2;
+  string hex_share_id = 3;
+}
+
+message ListSitesRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message ListSitesResponse {
+  repeated Site sites = 1;
+  int32 count = 2;
+  int64 total = 3;
+}
+
+// ============================ Analytics ============================
+
+message TopPage {
+  string path = 1;
+  int32 views = 2;
+}
+
+message DailyDataPoint {
+  string date = 1;
+  int32 views = 2;
+}
+
+message Analytics {
+  string site_hex = 1;
+  int32 period_hours = 2;
+  int32 total_pageviews = 3;
+  int32 unique_visitors = 4;
+  int32 bounce_rate = 5;
+  int32 sessions = 6;
+  double avg_pages_per_session = 7;
+  repeated TopPage top_pages = 8;
+  map<string, int32> device_breakdown = 9;
+  int32 mobile_percentage = 10;
+  int32 desktop_percentage = 11;
+  repeated DailyDataPoint daily_data = 12;
+  string generated_at = 13;
+}
+
+message GetAnalyticsRequest {
+  string hex_share_id = 1;
+  int32 hours = 2;
+}
+
+// ============================ Health ============================
+
+message HealthCheckRequest {
+  string service = 1;
+}
+
+message HealthCheckResponse {
+  string status = 1;
+  string service = 2;
+}
