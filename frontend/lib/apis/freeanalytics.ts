@@ -16,6 +16,7 @@ export interface EventData {
   page_path: string;
   device_type: string;
   screen_res?: string;
+  lamport_ts?: number;
   ref?: string | null;
   source_type?: string | null;
   source_name?: string | null;

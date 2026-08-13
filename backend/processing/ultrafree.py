@@ -4,6 +4,7 @@ Fetches raw events from database and processes them into analytics metrics
 """
 
 from core.config import supabase
+from core.lamport import order_key
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
 from collections import defaultdict
@@ -87,6 +88,9 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
                 "generated_at": datetime.utcnow().isoformat()
             }
         
+        # Total order from the Lamport clock (distributed, clock-skew independent)
+        events.sort(key=order_key)
+
         # Calculate metrics
         total_pageviews = len(events)  # Sum of all route views
         unique_visitors = len(set(e.get("unique_cookie") for e in events))
@@ -128,10 +132,10 @@ def process_analytics(site_hex: str, hours: int = 24) -> Dict:
         mobile_percentage = round((mobile_count / total_device_events * 100)) if total_device_events > 0 else 0
         desktop_percentage = round((desktop_count / total_device_events * 100)) if total_device_events > 0 else 0
         
-        # Group by date for daily chart
+        # Group by date for daily chart (bucket by server receive time to avoid client clock skew)
         daily_views = defaultdict(int)
         for event in events:
-            event_time_str = event.get("event_time")
+            event_time_str = event.get("received_at") or event.get("event_time")
             if event_time_str:
                 # Parse ISO format timestamp and extract date
                 try:
@@ -221,7 +225,8 @@ def get_analytics_by_period(site_hex: str, start_date: str, end_date: str) -> Di
         ).eq("site_hex", site_hex).gte("event_time", start_date).lte("event_time", end_date).execute()
         
         events = response.data if response.data else []
-        
+        events.sort(key=order_key)
+
         if not events:
             return {
                 "site_hex": site_hex,

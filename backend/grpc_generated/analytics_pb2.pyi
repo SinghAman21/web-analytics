@@ -7,7 +7,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class EventData(_message.Message):
-    __slots__ = ("site_hex", "unique_cookie", "session_id", "page_url", "page_path", "page_title", "page_hostname", "device_type", "viewport_res", "screen_res", "referrer", "browser", "browser_version", "os", "os_version", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "ref", "source_type", "source_name", "first_touch_source_type", "first_touch_source_name", "first_touch_source_url", "first_touch_landing_url", "first_touch_landing_path", "first_touch_at", "first_touch_click_id", "first_touch_utm_source", "first_touch_utm_medium", "first_touch_utm_campaign", "first_touch_utm_content", "first_touch_utm_term", "page_load_time", "dom_interactive_time", "first_paint_time", "first_contentful_paint_time", "interaction_count", "scroll_depth", "is_bounce", "country", "country_code", "region", "city", "latitude", "longitude", "isp", "connection_type", "connection_effective_type", "language", "timezone", "event_type", "event_time")
+    __slots__ = ("site_hex", "unique_cookie", "session_id", "page_url", "page_path", "page_title", "page_hostname", "device_type", "viewport_res", "screen_res", "referrer", "browser", "browser_version", "os", "os_version", "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "ref", "source_type", "source_name", "first_touch_source_type", "first_touch_source_name", "first_touch_source_url", "first_touch_landing_url", "first_touch_landing_path", "first_touch_at", "first_touch_click_id", "first_touch_utm_source", "first_touch_utm_medium", "first_touch_utm_campaign", "first_touch_utm_content", "first_touch_utm_term", "page_load_time", "dom_interactive_time", "first_paint_time", "first_contentful_paint_time", "interaction_count", "scroll_depth", "is_bounce", "country", "country_code", "region", "city", "latitude", "longitude", "isp", "connection_type", "connection_effective_type", "language", "timezone", "event_type", "event_time", "lamport_ts", "process_id", "received_at")
     SITE_HEX_FIELD_NUMBER: _ClassVar[int]
     UNIQUE_COOKIE_FIELD_NUMBER: _ClassVar[int]
     SESSION_ID_FIELD_NUMBER: _ClassVar[int]
@@ -63,6 +63,9 @@ class EventData(_message.Message):
     TIMEZONE_FIELD_NUMBER: _ClassVar[int]
     EVENT_TYPE_FIELD_NUMBER: _ClassVar[int]
     EVENT_TIME_FIELD_NUMBER: _ClassVar[int]
+    LAMPORT_TS_FIELD_NUMBER: _ClassVar[int]
+    PROCESS_ID_FIELD_NUMBER: _ClassVar[int]
+    RECEIVED_AT_FIELD_NUMBER: _ClassVar[int]
     site_hex: str
     unique_cookie: str
     session_id: str
@@ -118,7 +121,10 @@ class EventData(_message.Message):
     timezone: str
     event_type: str
     event_time: str
-    def __init__(self, site_hex: _Optional[str] = ..., unique_cookie: _Optional[str] = ..., session_id: _Optional[str] = ..., page_url: _Optional[str] = ..., page_path: _Optional[str] = ..., page_title: _Optional[str] = ..., page_hostname: _Optional[str] = ..., device_type: _Optional[str] = ..., viewport_res: _Optional[str] = ..., screen_res: _Optional[str] = ..., referrer: _Optional[str] = ..., browser: _Optional[str] = ..., browser_version: _Optional[str] = ..., os: _Optional[str] = ..., os_version: _Optional[str] = ..., utm_source: _Optional[str] = ..., utm_medium: _Optional[str] = ..., utm_campaign: _Optional[str] = ..., utm_content: _Optional[str] = ..., utm_term: _Optional[str] = ..., ref: _Optional[str] = ..., source_type: _Optional[str] = ..., source_name: _Optional[str] = ..., first_touch_source_type: _Optional[str] = ..., first_touch_source_name: _Optional[str] = ..., first_touch_source_url: _Optional[str] = ..., first_touch_landing_url: _Optional[str] = ..., first_touch_landing_path: _Optional[str] = ..., first_touch_at: _Optional[str] = ..., first_touch_click_id: _Optional[str] = ..., first_touch_utm_source: _Optional[str] = ..., first_touch_utm_medium: _Optional[str] = ..., first_touch_utm_campaign: _Optional[str] = ..., first_touch_utm_content: _Optional[str] = ..., first_touch_utm_term: _Optional[str] = ..., page_load_time: _Optional[int] = ..., dom_interactive_time: _Optional[int] = ..., first_paint_time: _Optional[int] = ..., first_contentful_paint_time: _Optional[int] = ..., interaction_count: _Optional[int] = ..., scroll_depth: _Optional[int] = ..., is_bounce: _Optional[bool] = ..., country: _Optional[str] = ..., country_code: _Optional[str] = ..., region: _Optional[str] = ..., city: _Optional[str] = ..., latitude: _Optional[float] = ..., longitude: _Optional[float] = ..., isp: _Optional[str] = ..., connection_type: _Optional[str] = ..., connection_effective_type: _Optional[str] = ..., language: _Optional[str] = ..., timezone: _Optional[str] = ..., event_type: _Optional[str] = ..., event_time: _Optional[str] = ...) -> None: ...
+    lamport_ts: int
+    process_id: str
+    received_at: str
+    def __init__(self, site_hex: _Optional[str] = ..., unique_cookie: _Optional[str] = ..., session_id: _Optional[str] = ..., page_url: _Optional[str] = ..., page_path: _Optional[str] = ..., page_title: _Optional[str] = ..., page_hostname: _Optional[str] = ..., device_type: _Optional[str] = ..., viewport_res: _Optional[str] = ..., screen_res: _Optional[str] = ..., referrer: _Optional[str] = ..., browser: _Optional[str] = ..., browser_version: _Optional[str] = ..., os: _Optional[str] = ..., os_version: _Optional[str] = ..., utm_source: _Optional[str] = ..., utm_medium: _Optional[str] = ..., utm_campaign: _Optional[str] = ..., utm_content: _Optional[str] = ..., utm_term: _Optional[str] = ..., ref: _Optional[str] = ..., source_type: _Optional[str] = ..., source_name: _Optional[str] = ..., first_touch_source_type: _Optional[str] = ..., first_touch_source_name: _Optional[str] = ..., first_touch_source_url: _Optional[str] = ..., first_touch_landing_url: _Optional[str] = ..., first_touch_landing_path: _Optional[str] = ..., first_touch_at: _Optional[str] = ..., first_touch_click_id: _Optional[str] = ..., first_touch_utm_source: _Optional[str] = ..., first_touch_utm_medium: _Optional[str] = ..., first_touch_utm_campaign: _Optional[str] = ..., first_touch_utm_content: _Optional[str] = ..., first_touch_utm_term: _Optional[str] = ..., page_load_time: _Optional[int] = ..., dom_interactive_time: _Optional[int] = ..., first_paint_time: _Optional[int] = ..., first_contentful_paint_time: _Optional[int] = ..., interaction_count: _Optional[int] = ..., scroll_depth: _Optional[int] = ..., is_bounce: _Optional[bool] = ..., country: _Optional[str] = ..., country_code: _Optional[str] = ..., region: _Optional[str] = ..., city: _Optional[str] = ..., latitude: _Optional[float] = ..., longitude: _Optional[float] = ..., isp: _Optional[str] = ..., connection_type: _Optional[str] = ..., connection_effective_type: _Optional[str] = ..., language: _Optional[str] = ..., timezone: _Optional[str] = ..., event_type: _Optional[str] = ..., event_time: _Optional[str] = ..., lamport_ts: _Optional[int] = ..., process_id: _Optional[str] = ..., received_at: _Optional[str] = ...) -> None: ...
 
 class LogEventRequest(_message.Message):
     __slots__ = ("event", "client_ip")
@@ -129,16 +135,18 @@ class LogEventRequest(_message.Message):
     def __init__(self, event: _Optional[_Union[EventData, _Mapping]] = ..., client_ip: _Optional[str] = ...) -> None: ...
 
 class LogEventResponse(_message.Message):
-    __slots__ = ("success", "message", "site_hex", "event_id")
+    __slots__ = ("success", "message", "site_hex", "event_id", "lamport_ts")
     SUCCESS_FIELD_NUMBER: _ClassVar[int]
     MESSAGE_FIELD_NUMBER: _ClassVar[int]
     SITE_HEX_FIELD_NUMBER: _ClassVar[int]
     EVENT_ID_FIELD_NUMBER: _ClassVar[int]
+    LAMPORT_TS_FIELD_NUMBER: _ClassVar[int]
     success: bool
     message: str
     site_hex: str
     event_id: int
-    def __init__(self, success: _Optional[bool] = ..., message: _Optional[str] = ..., site_hex: _Optional[str] = ..., event_id: _Optional[int] = ...) -> None: ...
+    lamport_ts: int
+    def __init__(self, success: _Optional[bool] = ..., message: _Optional[str] = ..., site_hex: _Optional[str] = ..., event_id: _Optional[int] = ..., lamport_ts: _Optional[int] = ...) -> None: ...
 
 class Site(_message.Message):
     __slots__ = ("id", "hex_share_id", "name", "site_url", "created_at")

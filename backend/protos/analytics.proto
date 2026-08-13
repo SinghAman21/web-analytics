@@ -85,6 +85,9 @@ message EventData {
   optional string timezone = 53;
   string event_type = 54;
   optional string event_time = 55;
+  optional int64 lamport_ts = 56;
+  optional string process_id = 57;
+  optional string received_at = 58;
 }
 
 message LogEventRequest {
@@ -97,6 +100,7 @@ message LogEventResponse {
   string message = 2;
   string site_hex = 3;
   int64 event_id = 4;
+  optional int64 lamport_ts = 5;
 }
 
 // ============================ Sites ============================

@@ -45,6 +45,7 @@
     pageInteracted: false,
     scrollEventCount: 0,
     lastScrollY: typeof window !== 'undefined' ? window.scrollY || 0 : 0,
+    lamportCounter: 0,
     initialized: false
   };
 
@@ -215,6 +216,7 @@
         page_path: getPagePath(),
         device_type: detectDeviceType(),
         screen_res: getScreenResolution(),
+        lamport_ts: ++state.lamportCounter,
         is_bounce: isBounce()
         // event_time: handled by server
         // ip_hash: handled by server

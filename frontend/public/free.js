@@ -69,7 +69,8 @@
     geoData: null,
     geoFetched: false,
     performanceData: null,
-    firstTouch: null
+    firstTouch: null,
+    lamportCounter: 0
   };
 
   function safeRun(fn, label) {
@@ -864,6 +865,7 @@
         connection_effective_type: connectionInfo.connection_effective_type,
         is_bounce: isBounce(),
         interaction_count: state.interactionCount,
+        lamport_ts: ++state.lamportCounter,
         scroll_depth: getScrollDepth(),
         browser: browserOS.browser,
         browser_version: browserOS.browser_version,

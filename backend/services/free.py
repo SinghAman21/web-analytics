@@ -1,4 +1,5 @@
 from core.config import supabase
+from core.lamport import get_clock
 from typing import Optional
 import secrets
 import string
@@ -155,6 +156,9 @@ def log_free_event(event_data: dict, ip_address: Optional[str] = None) -> dict:
         # Hash IP for privacy
         ip_hash = hashlib.sha256(ip_address.encode()).hexdigest()[:16] if ip_address else None
         
+        # Stamp with the Lamport logical clock for distributed ordering
+        stamp = get_clock().stamp(event_data.get("lamport_ts") or 0)
+        
         # Prepare event record with all fields from tracker
         page_url = event_data.get("page_url") or event_data.get("page_path") or "/"
 
@@ -214,6 +218,9 @@ def log_free_event(event_data: dict, ip_address: Optional[str] = None) -> dict:
             "first_touch_utm_term": event_data.get("first_touch_utm_term"),
             "event_type": event_data.get("event_type", "page_view"),
             "event_time": event_data.get("event_time") or datetime.utcnow().isoformat(),
+            "lamport_ts": stamp["lamport_ts"],
+            "process_id": stamp["process_id"],
+            "received_at": datetime.utcnow().isoformat(),
             "ip_hash": ip_hash,
         }
         

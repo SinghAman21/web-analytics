@@ -1,4 +1,5 @@
 from core.config import supabase
+from core.lamport import get_clock
 from typing import Optional
 import secrets
 import string
@@ -132,6 +133,9 @@ def log_ultrafreeevent(event_data: dict, ip_address: str) -> dict:
         # Hash the IP address for privacy
         ip_hash = hashlib.sha256(ip_address.encode()).hexdigest()
         
+        # Stamp with the Lamport logical clock for distributed ordering
+        stamp = get_clock().stamp(event_data.get("lamport_ts") or 0)
+        
         # Insert into ultrafree_raw_events
         response = supabase.table("ultrafree_raw_events").insert({
             "site_hex": event_data["site_hex"],
@@ -141,6 +145,9 @@ def log_ultrafreeevent(event_data: dict, ip_address: str) -> dict:
             "device_type": event_data["device_type"],
             "ip_hash": ip_hash,
             "screen_res": event_data.get("screen_res"),
+            "lamport_ts": stamp["lamport_ts"],
+            "process_id": stamp["process_id"],
+            "received_at": datetime.utcnow().isoformat(),
         }).execute()
         
         logger.info(f"Event logged successfully")

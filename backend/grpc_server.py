@@ -99,6 +99,7 @@ class AnalyticsServiceServicer(analytics_pb2_grpc.AnalyticsServiceServicer):
             message="Event logged successfully",
             site_hex=event.get("site_hex", ""),
             event_id=int(result.get("id") or 0) if result else 0,
+            lamport_ts=int(result.get("lamport_ts") or 0) if result else 0,
         )
 
     async def GetSite(

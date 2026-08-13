@@ -1,3 +1,21 @@
+export interface GrpcEventData {
+  site_hex: string;
+  unique_cookie: string;
+  session_id: string;
+  page_path: string;
+  device_type: string;
+  event_type?: string;
+  event_time?: string;
+  lamport_ts?: string | number;
+  process_id?: string;
+  received_at?: string;
+}
+
+export interface GrpcLogEventRequest {
+  event: GrpcEventData;
+  client_ip?: string;
+}
+
 export interface GrpcTopPage {
   path: string;
   views: string | number;
@@ -63,4 +81,5 @@ export interface GrpcLogEventResponse {
   message: string;
   site_hex: string;
   event_id: string | number;
+  lamport_ts?: string | number;
 }

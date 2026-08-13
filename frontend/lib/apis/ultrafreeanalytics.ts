@@ -13,6 +13,7 @@ export interface EventData {
   page_path: string;
   device_type: string;
   screen_res?: string;
+  lamport_ts?: number;
 }
 
 export interface SiteInfo {

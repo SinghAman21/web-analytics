@@ -95,6 +95,9 @@ class EventData(BaseModel):
     timezone: Optional[str] = Field(None, description="Client timezone")
     event_type: str = Field("page_view", description="Analytics event type")
     event_time: Optional[str] = Field(None, description="Event timestamp in ISO format")
+    lamport_ts: Optional[int] = Field(None, description="Client-side Lamport counter for distributed ordering")
+    process_id: Optional[str] = Field(None, description="Originating replica/process id (assigned by server)")
+    received_at: Optional[str] = Field(None, description="Server receive time in ISO format (assigned by server)")
 
     class Config:
         extra = "allow"
