@@ -201,3 +201,26 @@ message AccessReply {
   int32 node_id = 1;
   int32 timestamp = 2;
 }
+
+// ============================ Deadlock Simulation ============================
+// Centralised lock manager for deadlock simulation and resolution.
+// Two workers (AutoSave and FinalSubmit) compete for two shared resources
+// (draft and submission) in opposite order, creating a circular-wait.
+// The Lock Manager maintains a wait-for graph and optionally detects cycles
+// to abort the newer requester before a real deadlock forms.
+
+service LockService {
+  rpc AcquireLock (LockRequest) returns (LockReply);
+  rpc ReleaseLock (LockRequest) returns (LockReply);
+}
+
+message LockRequest {
+  string resource_id = 1;
+  int32  holder_id   = 2;
+  int32  timestamp   = 3;
+}
+
+message LockReply {
+  bool   granted = 1;
+  string message = 2;
+}
