@@ -62,15 +62,30 @@ async def get_ultrafree_site_endpoint(
     hex_id: str = Path(..., min_length=12, max_length=12, pattern=r"^[a-zA-Z0-9]{12}$")
 ):
     try:
-        from services.ultrafree import get_ultrafree
+        try:
+            from core.cache import cached_fetch, FRESH_KEY_PREFIX, STALE_KEY_PREFIX, CACHE_TTL_SECONDS
 
-        site = get_ultrafree(hex_id)
-        if not site:
-            raise HTTPException(status_code=404, detail="Site not found")
-        return {"success": True, "data": site}
+            def _fetch():
+                s = get_ultrafree(hex_id)
+                if not s:
+                    raise HTTPException(status_code=404, detail="Site not found")
+                return s
+
+            site, source = cached_fetch(f"{FRESH_KEY_PREFIX}{hex_id}", f"{STALE_KEY_PREFIX}{hex_id}", _fetch, ttl=CACHE_TTL_SECONDS)
+            logger.info("[Gateway] GetSite %s source=%s", hex_id, source)
+            return {"success": True, "data": site}
+        except ImportError:
+            from services.ultrafree import get_ultrafree as _get
+
+            site = _get(hex_id)
+            if not site:
+                raise HTTPException(status_code=404, detail="Site not found")
+            return {"success": True, "data": site}
     except HTTPException:
         raise
     except Exception as e:
+        if "Site not found" in str(e):
+            raise HTTPException(status_code=404, detail="Site not found")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -169,9 +184,54 @@ async def get_analytics_endpoint(
 ):
     try:
         logger.info(f"Analytics request for hex_id={hex_id}")
-        analytics = process_analytics(site_hex=hex_id, hours=720)
-        logger.info("Analytics processed successfully")
-        return {"success": True, "data": analytics}
+        try:
+            from core.cache import get_redis
+            import json
+
+            fresh = f"fresh:analytics:{hex_id}:720"
+            stale = f"stale:analytics:{hex_id}:720"
+            r = None
+            try:
+                r = get_redis()
+                cached = r.get(fresh)
+                if cached:
+                    logger.info("[Gateway] CACHE HIT analytics %s", hex_id)
+                    return {"success": True, "data": json.loads(cached)}
+                logger.info("[Gateway] CACHE MISS analytics %s", hex_id)
+            except Exception as ce:
+                logger.warning("[Gateway] REDIS UNAVAILABLE %s", ce)
+                r = None
+            analytics = process_analytics(site_hex=hex_id, hours=720)
+            if r is not None:
+                try:
+                    import os
+
+                    ttl = int(os.getenv("CACHE_TTL_SECONDS", "10"))
+                    r.set(fresh, json.dumps(analytics), ex=ttl)
+                    r.set(stale, json.dumps(analytics))
+                except Exception:
+                    logger.warning("[Gateway] Redis write failed")
+            logger.info("Analytics processed successfully")
+            return {"success": True, "data": analytics}
+        except ImportError:
+            analytics = process_analytics(site_hex=hex_id, hours=720)
+            logger.info("Analytics processed successfully")
+            return {"success": True, "data": analytics}
     except Exception as e:
+        try:
+            from core.cache import get_redis
+            import json
+
+            stale = f"stale:analytics:{hex_id}:720"
+            try:
+                r = get_redis()
+                stale_data = r.get(stale)
+                if stale_data:
+                    logger.warning("[Gateway] BACKEND UNAVAILABLE serving STALE %s", hex_id)
+                    return {"success": True, "data": json.loads(stale_data)}
+            except Exception:
+                pass
+        except Exception:
+            pass
         logger.error(f"Error processing analytics: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
